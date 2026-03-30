@@ -23,7 +23,10 @@
                     <th>Code</th>
                     <th>Year</th>
                     <th>Baskets</th>
+                    <th>Assigned To</th>
+                    <th>Course Workflow</th>
                     <th>Created At</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -34,7 +37,27 @@
                         <td>{{ $department->code }}</td>
                         <td>{{ $department->year }}</td>
                         <td>{{ $department->courseBaskets->count() }}</td>
+                        <td>{{ $department->assignedUser?->name ?? 'Not assigned' }}</td>
+                        <td>
+                            @if($department->hasAssignedCourseCodes())
+                                Codes allocated
+                            @elseif($department->hasSubmittedCoursesToCdc())
+                                Awaiting CDC codes
+                            @elseif($department->courses->count() > 0)
+                                Draft designed
+                            @else
+                                Not started
+                            @endif
+                        </td>
                         <td>{{ $department->created_at->format('d M Y, h:i A') }}</td>
+                        <td>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <a href="{{ route('cdc.departments.show', $department) }}" class="btn btn-secondary" style="padding: 7px 14px;">View</a>
+                                <a href="{{ route('cdc.departments.assign', $department) }}" class="btn btn-primary" style="padding: 7px 14px;">
+                                    {{ $department->assigned_user_id ? 'Reassign' : 'Assign' }}
+                                </a>
+                            </div>
+                        </td>
                     </tr>
                 @endforeach
             </tbody>

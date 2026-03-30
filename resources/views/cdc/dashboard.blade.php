@@ -10,6 +10,7 @@
     <div style="display: flex; gap: 15px;">
         <a href="{{ route('cdc.departments.create') }}" class="btn btn-primary">Create Programme</a>
         <a href="{{ route('cdc.departments.index') }}" class="btn btn-success">View Programmes</a>
+        <a href="{{ route('department.login') }}" class="btn btn-secondary">Department Portal</a>
     </div>
 </div>
 @endsection

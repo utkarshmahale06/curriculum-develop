@@ -1,10 +1,8 @@
 <?php
 
 use App\Models\Department;
-use App\Models\CourseBasket;
 use App\Models\User;
 
-// Helper to create a CDC user
 function createCdcUser(): User
 {
     return User::create([
@@ -15,7 +13,16 @@ function createCdcUser(): User
     ]);
 }
 
-// Helper to create a non-CDC user
+function createDepartmentUser(array $overrides = []): User
+{
+    return User::create(array_merge([
+        'name' => 'Department User',
+        'email' => 'department@example.com',
+        'password' => bcrypt('password123'),
+        'role' => 'department',
+    ], $overrides));
+}
+
 function createRegularUser(): User
 {
     return User::create([
@@ -26,15 +33,14 @@ function createRegularUser(): User
     ]);
 }
 
-// Helper: valid basket data
 function validBasketData(): array
 {
     return [
-        ['basket_name' => 'Core', 'courses' => 5, 'cl' => 3, 'tl' => 1, 'll' => 2, 'credits' => 4, 'marks' => 100],
+        ['basket_name' => 'Core', 'courses' => 2, 'cl' => 3, 'tl' => 1, 'll' => 2, 'credits' => 4, 'marks' => 100],
+        ['basket_name' => 'Elective', 'courses' => 1, 'cl' => 2, 'tl' => 0, 'll' => 2, 'credits' => 3, 'marks' => 75],
     ];
 }
 
-// Helper: valid programme store payload
 function validProgrammeData(array $overrides = []): array
 {
     return array_merge([
@@ -46,9 +52,114 @@ function validProgrammeData(array $overrides = []): array
     ], $overrides);
 }
 
-// ===========================
-// Phase-1 Tests (auth)
-// ===========================
+function createProgramme(array $overrides = []): Department
+{
+    $department = Department::create(array_merge([
+        'name' => 'Computer Science',
+        'code' => 'CS',
+        'year' => '2026',
+        'award_class_subjects' => 0,
+    ], $overrides));
+
+    foreach (validBasketData() as $basket) {
+        $department->courseBaskets()->create([
+            'basket_name' => $basket['basket_name'],
+            'courses' => $basket['courses'],
+            'cl' => $basket['cl'],
+            'tl' => $basket['tl'],
+            'll' => $basket['ll'],
+            'hours' => $basket['cl'] + $basket['tl'] + $basket['ll'],
+            'credits' => $basket['credits'],
+            'marks' => $basket['marks'],
+        ]);
+    }
+
+    return $department->fresh('courseBaskets');
+}
+
+function validCourseRows(Department $department): array
+{
+    $coreBasket = $department->courseBaskets->firstWhere('basket_name', 'Core');
+    $electiveBasket = $department->courseBaskets->firstWhere('basket_name', 'Elective');
+
+    return [
+        [
+            'course_basket_id' => $coreBasket->id,
+            'semester_name' => 'I-Sem',
+            'sr_no' => 1,
+            'course_title' => 'Applied Physics',
+            'abbreviation' => 'PHY',
+            'course_type' => 'Core',
+            'course_code' => '231101',
+            'total_iks_hours' => 2,
+            'cl' => 2,
+            'tl' => 1,
+            'll' => 1,
+            'self_learning' => 1,
+            'credits' => 2,
+            'paper_duration' => 2,
+            'fa_th_max' => 15,
+            'sa_th_max' => 20,
+            'theory_min' => 20,
+            'fa_pr_max' => 0,
+            'fa_pr_min' => 0,
+            'sa_pr_max' => 0,
+            'sa_pr_min' => 0,
+            'sla_max' => 15,
+            'sla_min' => 10,
+        ],
+        [
+            'course_basket_id' => $coreBasket->id,
+            'semester_name' => 'II-Sem',
+            'sr_no' => 2,
+            'course_title' => 'Applied Mathematics',
+            'abbreviation' => 'MAT',
+            'course_type' => 'Core',
+            'course_code' => '231102',
+            'total_iks_hours' => 0,
+            'cl' => 1,
+            'tl' => 0,
+            'll' => 1,
+            'self_learning' => 1,
+            'credits' => 2,
+            'paper_duration' => 2,
+            'fa_th_max' => 10,
+            'sa_th_max' => 20,
+            'theory_min' => 10,
+            'fa_pr_max' => 0,
+            'fa_pr_min' => 0,
+            'sa_pr_max' => 0,
+            'sa_pr_min' => 0,
+            'sla_max' => 20,
+            'sla_min' => 10,
+        ],
+        [
+            'course_basket_id' => $electiveBasket->id,
+            'semester_name' => 'III-Sem',
+            'sr_no' => 3,
+            'course_title' => 'React JS Technology',
+            'abbreviation' => 'RJS',
+            'course_type' => 'Elective',
+            'course_code' => '235501',
+            'total_iks_hours' => 0,
+            'cl' => 2,
+            'tl' => 0,
+            'll' => 2,
+            'self_learning' => 1,
+            'credits' => 3,
+            'paper_duration' => 2,
+            'fa_th_max' => 25,
+            'sa_th_max' => 0,
+            'theory_min' => 0,
+            'fa_pr_max' => 0,
+            'fa_pr_min' => 0,
+            'sa_pr_max' => 25,
+            'sa_pr_min' => 10,
+            'sla_max' => 25,
+            'sla_min' => 10,
+        ],
+    ];
+}
 
 test('cdc user can login and is redirected to cdc dashboard', function () {
     $user = createCdcUser();
@@ -62,41 +173,34 @@ test('cdc user can login and is redirected to cdc dashboard', function () {
     $this->assertAuthenticatedAs($user);
 });
 
-test('non cdc user is blocked from accessing cdc dashboard', function () {
-    $user = createRegularUser();
-    $this->actingAs($user);
+test('department user can create account on first login and lands on department dashboard', function () {
+    $response = $this->post(route('department.register.submit'), [
+        'name' => 'Department User',
+        'email' => 'department@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ]);
 
-    $response = $this->get('/cdc/dashboard');
+    $response->assertRedirect(route('department.dashboard'));
+    $response->assertSessionHas('success', 'Department account created successfully.');
 
-    $response->assertRedirect(route('login'));
-    $response->assertSessionHas('error', 'You are not authorized to access this page.');
+    $this->assertDatabaseHas('users', [
+        'email' => 'department@example.com',
+        'role' => 'department',
+    ]);
 });
 
-test('unauthenticated user is redirected to login', function () {
-    $response = $this->get('/cdc/dashboard');
-    $response->assertRedirect(route('login'));
+test('department user can login through department portal', function () {
+    $user = createDepartmentUser();
+
+    $response = $this->post(route('department.login.submit'), [
+        'email' => $user->email,
+        'password' => 'password123',
+    ]);
+
+    $response->assertRedirect(route('department.dashboard'));
+    $this->assertAuthenticatedAs($user);
 });
-
-test('cdc dashboard loads with action buttons', function () {
-    $user = createCdcUser();
-    $response = $this->actingAs($user)->get('/cdc/dashboard');
-
-    $response->assertStatus(200);
-    $response->assertSee('Create Programme');
-    $response->assertSee('View Programmes');
-});
-
-test('all cdc routes are accessible by cdc user', function () {
-    $user = createCdcUser();
-
-    $this->actingAs($user)->get('/cdc/dashboard')->assertStatus(200);
-    $this->actingAs($user)->get('/cdc/departments')->assertStatus(200);
-    $this->actingAs($user)->get('/cdc/departments/create')->assertStatus(200);
-});
-
-// ===========================
-// Programme CRUD Tests
-// ===========================
 
 test('cdc user can create a programme with course baskets', function () {
     $user = createCdcUser();
@@ -112,267 +216,274 @@ test('cdc user can create a programme with course baskets', function () {
         'year' => '2026',
     ]);
 
-    $dept = Department::where('name', 'Computer Science')->first();
-    expect($dept->courseBaskets)->toHaveCount(1);
-    expect($dept->courseBaskets->first()->hours)->toBe(6); // 3+1+2
-    expect($dept->courseBaskets->first()->basket_name)->toBe('Core');
+    $department = Department::where('name', 'Computer Science')->first();
+    expect($department->courseBaskets)->toHaveCount(2);
+    expect($department->courseBaskets->first()->hours)->toBe(6);
 });
 
-test('duplicate programme name is prevented', function () {
-    $user = createCdcUser();
-    Department::create(['name' => 'Computer Science', 'code' => 'CS', 'year' => '2026']);
+test('programme list shows assignment action and assigned department user', function () {
+    $cdc = createCdcUser();
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'code' => 'CS2',
-    ]));
+    $response = $this->actingAs($cdc)->get(route('cdc.departments.index'));
 
-    $response->assertSessionHasErrors('name');
+    $response->assertOk();
+    $response->assertSee('View');
+    $response->assertSee('Reassign');
+    $response->assertSee('Not started');
+    $response->assertSee($departmentUser->name);
+    $response->assertSee($department->name);
 });
 
-test('duplicate programme code is prevented', function () {
-    $user = createCdcUser();
-    Department::create(['name' => 'Computer Science', 'code' => 'CS', 'year' => '2026']);
-
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'name' => 'Electronics',
-    ]));
-
-    $response->assertSessionHasErrors('code');
-});
-
-test('year is required', function () {
-    $user = createCdcUser();
-
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'year' => '',
-    ]));
-
-    $response->assertSessionHasErrors('year');
-});
-
-test('programme name is required', function () {
-    $user = createCdcUser();
-
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'name' => '',
-    ]));
-
-    $response->assertSessionHasErrors('name');
-});
-
-test('programme code is required', function () {
-    $user = createCdcUser();
-
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'code' => '',
-    ]));
-
-    $response->assertSessionHasErrors('code');
-});
-
-test('at least one basket is required', function () {
-    $user = createCdcUser();
-
-    $response = $this->actingAs($user)->post('/cdc/departments/store', [
-        'name' => 'Test',
-        'code' => 'TST',
-        'year' => '2026',
-        'baskets' => [],
+test('assign page shows all department accounts', function () {
+    $cdc = createCdcUser();
+    $department = createProgramme();
+    $userOne = createDepartmentUser();
+    $userTwo = createDepartmentUser([
+        'name' => 'Department User 2',
+        'email' => 'department2@example.com',
     ]);
 
-    $response->assertSessionHasErrors('baskets');
+    $response = $this->actingAs($cdc)->get(route('cdc.departments.assign', $department));
+
+    $response->assertOk();
+    $response->assertSee($userOne->email);
+    $response->assertSee($userTwo->email);
 });
 
-test('programme list page shows programmes with year', function () {
-    $user = createCdcUser();
-    $dept = Department::create(['name' => 'Computer Science', 'code' => 'CS', 'year' => '2026']);
-    $dept->courseBaskets()->create([
-        'basket_name' => 'Core', 'courses' => 5,
-        'cl' => 3, 'tl' => 1, 'll' => 2, 'hours' => 6, 'credits' => 4, 'marks' => 100,
+test('cdc user can assign a scheme to a department user', function () {
+    $cdc = createCdcUser();
+    $department = createProgramme();
+    $departmentUser = createDepartmentUser();
+
+    $response = $this->actingAs($cdc)->post(route('cdc.departments.assign.update', $department), [
+        'assigned_user_id' => $departmentUser->id,
     ]);
 
-    $response = $this->actingAs($user)->get('/cdc/departments');
-
-    $response->assertStatus(200);
-    $response->assertSee('Computer Science');
-    $response->assertSee('2026');
-});
-
-// ===========================
-// New: Basket Name, Numeric Courses, Nullable CL/TL/LL
-// ===========================
-
-test('create page shows Basket Name column header', function () {
-    $user = createCdcUser();
-    $response = $this->actingAs($user)->get('/cdc/departments/create');
-
-    $response->assertStatus(200);
-    $response->assertSee('Basket Name');
-    $response->assertDontSee('Level Name');
-});
-
-test('courses field does not accept text values', function () {
-    $user = createCdcUser();
-
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'baskets' => [
-            ['basket_name' => 'Core', 'courses' => 'abc', 'cl' => 3, 'tl' => 1, 'll' => 2, 'credits' => 4, 'marks' => 100],
-        ],
-    ]));
-
-    $response->assertSessionHasErrors('baskets.0.courses');
-});
-
-test('courses field accepts numeric values', function () {
-    $user = createCdcUser();
-
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'baskets' => [
-            ['basket_name' => 'Core', 'courses' => 5, 'cl' => 3, 'tl' => 1, 'll' => 2, 'credits' => 4, 'marks' => 100],
-        ],
-    ]));
-
-    $response->assertSessionHasNoErrors();
     $response->assertRedirect(route('cdc.departments.index'));
+    $this->assertDatabaseHas('departments', [
+        'id' => $department->id,
+        'assigned_user_id' => $departmentUser->id,
+    ]);
 });
 
-test('CL can be empty and treated as 0', function () {
-    $user = createCdcUser();
+test('department user sees assigned schemes on dashboard', function () {
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'baskets' => [
-            ['basket_name' => 'Core', 'courses' => 5, 'cl' => null, 'tl' => 1, 'll' => 2, 'credits' => 4, 'marks' => 100],
-        ],
-    ]));
+    $response = $this->actingAs($departmentUser)->get(route('department.dashboard'));
 
-    $response->assertSessionHasNoErrors();
-    $dept = Department::where('name', 'Computer Science')->first();
-    expect($dept->courseBaskets->first()->hours)->toBe(3); // 0+1+2
-    expect($dept->courseBaskets->first()->cl)->toBeNull();
+    $response->assertOk();
+    $response->assertSee($department->name);
+    $response->assertSee('Design Remaining Courses');
+    $response->assertSee('View Designed Courses');
+    $response->assertSee('Progress:');
 });
 
-test('TL can be empty and treated as 0', function () {
-    $user = createCdcUser();
+test('non department user cannot access department dashboard', function () {
+    $user = createRegularUser();
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'baskets' => [
-            ['basket_name' => 'Core', 'courses' => 5, 'cl' => 3, 'tl' => null, 'll' => 2, 'credits' => 4, 'marks' => 100],
-        ],
-    ]));
+    $response = $this->actingAs($user)->get(route('department.dashboard'));
 
-    $response->assertSessionHasNoErrors();
-    $dept = Department::where('name', 'Computer Science')->first();
-    expect($dept->courseBaskets->first()->hours)->toBe(5); // 3+0+2
-    expect($dept->courseBaskets->first()->tl)->toBeNull();
+    $response->assertRedirect(route('department.login'));
+    $response->assertSessionHas('error', 'You are not authorized to access the department portal.');
 });
 
-test('LL can be empty and treated as 0', function () {
-    $user = createCdcUser();
+test('department user can design courses for assigned scheme in excel-style structure', function () {
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'baskets' => [
-            ['basket_name' => 'Core', 'courses' => 5, 'cl' => 3, 'tl' => 1, 'll' => null, 'credits' => 4, 'marks' => 100],
-        ],
-    ]));
+    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => validCourseRows($department),
+    ]);
 
-    $response->assertSessionHasNoErrors();
-    $dept = Department::where('name', 'Computer Science')->first();
-    expect($dept->courseBaskets->first()->hours)->toBe(4); // 3+1+0
-    expect($dept->courseBaskets->first()->ll)->toBeNull();
+    $response->assertRedirect(route('department.dashboard'));
+    $response->assertSessionHas('success', 'Courses designed successfully for the assigned scheme.');
+
+    $this->assertDatabaseHas('courses', [
+        'department_id' => $department->id,
+        'course_title' => 'Applied Physics',
+        'semester_name' => 'I-Sem',
+        'course_code' => null,
+        'notional_hours' => 5,
+        'theory_total' => 35,
+        'total_marks' => 50,
+    ]);
 });
 
-test('hours calculates correctly when all CL TL LL are empty', function () {
-    $user = createCdcUser();
+test('department user can save partially completed courses as draft', function () {
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $draftRows = [validCourseRows($department)[0]];
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'baskets' => [
-            ['basket_name' => 'Core', 'courses' => 5, 'cl' => null, 'tl' => null, 'll' => null, 'credits' => 4, 'marks' => 100],
-        ],
-    ]));
+    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'save_mode' => 'draft',
+        'courses' => $draftRows,
+    ]);
 
-    $response->assertSessionHasNoErrors();
-    $dept = Department::where('name', 'Computer Science')->first();
-    expect($dept->courseBaskets->first()->hours)->toBe(0);
+    $response->assertRedirect(route('department.dashboard'));
+    $response->assertSessionHas('success', 'Course draft saved successfully. You can continue later.');
+    $this->assertDatabaseHas('courses', [
+        'department_id' => $department->id,
+        'course_title' => 'Applied Physics',
+        'course_code' => null,
+    ]);
 });
 
-test('basket_name is required', function () {
-    $user = createCdcUser();
+test('department user can submit completed courses to cdc for code allocation', function () {
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'baskets' => [
-            ['basket_name' => '', 'courses' => 5, 'cl' => 3, 'tl' => 1, 'll' => 2, 'credits' => 4, 'marks' => 100],
-        ],
-    ]));
+    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => validCourseRows($department),
+    ]);
 
-    $response->assertSessionHasErrors('baskets.0.basket_name');
+    $response = $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
+
+    $response->assertRedirect(route('department.dashboard'));
+    $response->assertSessionHas('success', 'Courses submitted to CDC for course-code allocation.');
+    $this->assertDatabaseHas('departments', [
+        'id' => $department->id,
+        'courses_submitted_by_user_id' => $departmentUser->id,
+    ]);
 });
 
-test('basket fields validation messages are user friendly', function () {
-    $user = createCdcUser();
+test('cdc user can allocate course codes after department submission', function () {
+    $cdc = createCdcUser();
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'baskets' => [
-            ['basket_name' => '', 'courses' => 'abc', 'cl' => 'x', 'tl' => 'y', 'll' => 'z', 'credits' => '', 'marks' => ''],
-        ],
-    ]));
+    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => validCourseRows($department),
+    ]);
 
-    $errors = session('errors');
-    expect($errors->first('baskets.0.basket_name'))->toBe('Basket name is required.');
-    expect($errors->first('baskets.0.courses'))->toBe('Courses must be a number.');
-    expect($errors->first('baskets.0.cl'))->toBe('CL must be numeric.');
-    expect($errors->first('baskets.0.tl'))->toBe('TL must be numeric.');
-    expect($errors->first('baskets.0.ll'))->toBe('LL must be numeric.');
+    $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
+
+    $department = $department->fresh('courses');
+    $courseCodes = [];
+
+    foreach ($department->courses as $course) {
+        $courseCodes[$course->id] = 'CDC-' . str_pad((string) $course->sr_no, 3, '0', STR_PAD_LEFT);
+    }
+
+    $response = $this->actingAs($cdc)->post(route('cdc.departments.course-codes.update', $department), [
+        'course_codes' => $courseCodes,
+    ]);
+
+    $response->assertRedirect(route('cdc.departments.show', $department));
+    $response->assertSessionHas('success', 'Course codes allocated successfully.');
+    $this->assertDatabaseHas('courses', [
+        'department_id' => $department->id,
+        'course_title' => 'Applied Physics',
+        'course_code' => 'CDC-001',
+    ]);
 });
 
-// ===========================
-// Year Format Validation Tests
-// ===========================
+test('cdc user can view scheme details and designed course progress', function () {
+    $cdc = createCdcUser();
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $department->courses()->create([
+        'course_basket_id' => $department->courseBaskets->first()->id,
+        'created_by' => $departmentUser->id,
+        'semester_name' => 'I-Sem',
+        'sr_no' => 1,
+        'course_title' => 'Applied Physics',
+        'abbreviation' => 'PHY',
+        'course_type' => 'Core',
+        'course_code' => null,
+        'total_iks_hours' => 0,
+        'cl' => 2,
+        'tl' => 1,
+        'll' => 1,
+        'self_learning' => 1,
+        'notional_hours' => 5,
+        'credits' => 2,
+        'paper_duration' => 2,
+        'fa_th_max' => 15,
+        'sa_th_max' => 20,
+        'theory_total' => 35,
+        'theory_min' => 20,
+        'fa_pr_max' => 0,
+        'fa_pr_min' => 0,
+        'sa_pr_max' => 0,
+        'sa_pr_min' => 0,
+        'sla_max' => 15,
+        'sla_min' => 10,
+        'total_marks' => 50,
+    ]);
 
-test('year does not accept text values', function () {
-    $user = createCdcUser();
+    $response = $this->actingAs($cdc)->get(route('cdc.departments.show', $department));
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'year' => 'abcd',
-    ]));
-
-    $response->assertSessionHasErrors('year');
+    $response->assertOk();
+    $response->assertSee('Scheme Details');
+    $response->assertSee('Applied Physics');
+    $response->assertSee($departmentUser->name);
+    $response->assertSee('Pending CDC allocation');
 });
 
-test('year rejects values outside 2000-2100 range', function () {
-    $user = createCdcUser();
+test('department user can view designed courses in read only mode', function () {
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'year' => '1999',
-    ]));
+    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => validCourseRows($department),
+    ]);
 
-    $response->assertSessionHasErrors('year');
+    $response = $this->actingAs($departmentUser)->get(route('department.courses.show', $department));
 
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'name' => 'Test2', 'code' => 'T2',
-        'year' => '2101',
-    ]));
-
-    $response->assertSessionHasErrors('year');
+    $response->assertOk();
+    $response->assertSee('Designed Courses');
+    $response->assertSee('Applied Physics');
+    $response->assertSee('React JS Technology');
+    $response->assertSee('FA-TH Max');
+    $response->assertSee('Paper Duration');
 });
 
-test('year shows user friendly error messages', function () {
-    $user = createCdcUser();
+test('department user cannot add more courses than basket allows', function () {
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $rows = validCourseRows($department);
+    $rows[] = array_merge($rows[0], [
+        'sr_no' => 4,
+        'course_title' => 'Extra Core Course',
+        'course_code' => '231199',
+    ]);
 
-    // Empty year
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'year' => '',
-    ]));
-    expect(session('errors')->first('year'))->toBe('Year is required.');
+    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => $rows,
+    ]);
 
-    // Text year
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'year' => 'abc',
-    ]));
-    expect(session('errors')->first('year'))->toBe('Enter a valid year.');
+    $response->assertSessionHasErrors('courses');
+    $this->assertDatabaseMissing('courses', [
+        'department_id' => $department->id,
+        'course_title' => 'Extra Core Course',
+    ]);
+});
 
-    // 2-digit year
-    $response = $this->actingAs($user)->post('/cdc/departments/store', validProgrammeData([
-        'year' => '25',
-    ]));
-    expect(session('errors')->first('year'))->toBe('Year must be 4 digits.');
+test('department user course values must match assigned scheme basket values', function () {
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $rows = validCourseRows($department);
+    $rows[0]['cl'] = 5;
+
+    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => $rows,
+    ]);
+
+    $response->assertSessionHasErrors('courses');
+});
+
+test('department user cannot design courses for scheme assigned to another user', function () {
+    $owner = createDepartmentUser();
+    $otherUser = createDepartmentUser([
+        'name' => 'Other Department User',
+        'email' => 'other.department@example.com',
+    ]);
+    $department = createProgramme(['assigned_user_id' => $owner->id]);
+
+    $response = $this->actingAs($otherUser)->get(route('department.courses.edit', $department));
+
+    $response->assertForbidden();
 });

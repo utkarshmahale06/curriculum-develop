@@ -15,7 +15,7 @@ class CdcDepartmentController extends Controller
      */
     public function index()
     {
-        $departments = Department::with('courseBaskets')->orderBy('id', 'asc')->get();
+        $departments = Department::with(['courseBaskets', 'assignedUser', 'courses'])->orderBy('id', 'asc')->get();
 
         return view('cdc.departments.index', compact('departments'));
     }
