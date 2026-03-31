@@ -380,6 +380,47 @@ test('cdc user can allocate course codes after department submission', function 
     ]);
 });
 
+test('department edits do not clear cdc assigned course codes', function () {
+    $cdc = createCdcUser();
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+
+    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => validCourseRows($department),
+    ]);
+
+    $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
+
+    $department = $department->fresh('courses');
+    $courseCodes = [];
+
+    foreach ($department->courses as $course) {
+        $courseCodes[$course->id] = 'CDC-' . str_pad((string) $course->sr_no, 3, '0', STR_PAD_LEFT);
+    }
+
+    $this->actingAs($cdc)->post(route('cdc.departments.course-codes.update', $department), [
+        'course_codes' => $courseCodes,
+    ]);
+
+    $department = $department->fresh('courses');
+    $editedRows = validCourseRows($department);
+    $editedRows[0]['id'] = $department->courses->sortBy('sr_no')->values()[0]->id;
+    $editedRows[0]['course_title'] = 'Applied Physics Updated';
+    $editedRows[1]['id'] = $department->courses->sortBy('sr_no')->values()[1]->id;
+    $editedRows[2]['id'] = $department->courses->sortBy('sr_no')->values()[2]->id;
+
+    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => $editedRows,
+    ]);
+
+    $response->assertRedirect(route('department.dashboard'));
+    $this->assertDatabaseHas('courses', [
+        'department_id' => $department->id,
+        'course_title' => 'Applied Physics Updated',
+        'course_code' => 'CDC-001',
+    ]);
+});
+
 test('cdc user can view scheme details and designed course progress', function () {
     $cdc = createCdcUser();
     $departmentUser = createDepartmentUser();

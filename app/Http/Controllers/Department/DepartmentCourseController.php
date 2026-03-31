@@ -57,9 +57,11 @@ class DepartmentCourseController extends Controller
         $basketOptions = $department->courseBaskets()->orderBy('id')->get();
         $basketIds = $basketOptions->pluck('id')->all();
         $basketsById = $basketOptions->keyBy('id');
+        $existingCourseIds = $department->courses()->pluck('id')->all();
 
         $validator = validator($request->all(), [
             'courses' => ['required', 'array', 'min:1'],
+            'courses.*.id' => ['nullable', 'integer', 'in:' . implode(',', array_merge([0], $existingCourseIds))],
             'courses.*.course_basket_id' => ['required', 'integer', 'in:' . implode(',', $basketIds)],
             'courses.*.semester_name' => ['required', 'string', 'max:20'],
             'courses.*.sr_no' => ['required', 'integer', 'min:1'],
@@ -155,7 +157,8 @@ class DepartmentCourseController extends Controller
         $validated = $validator->validate();
 
         DB::transaction(function () use ($department, $validated, $basketsById) {
-            $department->courses()->delete();
+            $existingCourses = $department->courses()->get()->keyBy('id');
+            $retainedCourseIds = [];
             $hasLegacyCreatedByUserId = Schema::hasColumn('courses', 'created_by_user_id');
             $hasLegacyHours = Schema::hasColumn('courses', 'hours');
             $hasLegacyMarks = Schema::hasColumn('courses', 'marks');
@@ -166,6 +169,7 @@ class DepartmentCourseController extends Controller
             $hasCourseCodesAssignedByUserId = Schema::hasColumn('departments', 'course_codes_assigned_by_user_id');
 
             foreach ($validated['courses'] as $course) {
+                $existingCourse = isset($course['id']) ? $existingCourses->get((int) $course['id']) : null;
                 $basket = $basketsById->get((int) $course['course_basket_id']);
                 $cl = (int) ($course['cl'] ?? 0);
                 $tl = (int) ($course['tl'] ?? 0);
@@ -184,7 +188,8 @@ class DepartmentCourseController extends Controller
                     'course_title' => $course['course_title'],
                     'abbreviation' => $course['abbreviation'],
                     'course_type' => $basket?->basket_name,
-                    'course_code' => $supportsNullableCourseCode ? null : $this->legacyWorkflowCourseCode($department, $course, 'DRAFT'),
+                    'course_code' => $existingCourse?->course_code
+                        ?? ($supportsNullableCourseCode ? null : $this->legacyWorkflowCourseCode($department, $course, 'DRAFT')),
                     'total_iks_hours' => $course['total_iks_hours'] ?: 0,
                     'cl' => $course['cl'] !== null && $course['cl'] !== '' ? (int) $course['cl'] : null,
                     'tl' => $course['tl'] !== null && $course['tl'] !== '' ? (int) $course['tl'] : null,
@@ -218,29 +223,44 @@ class DepartmentCourseController extends Controller
                     $courseData['marks'] = $courseData['total_marks'];
                 }
 
-                $department->courses()->create($courseData);
+                if ($existingCourse) {
+                    $existingCourse->update($courseData);
+                    $retainedCourseIds[] = $existingCourse->id;
+                } else {
+                    $newCourse = $department->courses()->create($courseData);
+                    $retainedCourseIds[] = $newCourse->id;
+                }
             }
 
-            $statusReset = [];
-
-            if ($hasCoursesSubmittedToCdcAt) {
-                $statusReset['courses_submitted_to_cdc_at'] = null;
+            $coursesToDelete = $existingCourses->keys()->diff($retainedCourseIds);
+            if ($coursesToDelete->isNotEmpty()) {
+                $department->courses()->whereIn('id', $coursesToDelete->all())->delete();
             }
 
-            if ($hasCoursesSubmittedByUserId) {
-                $statusReset['courses_submitted_by_user_id'] = null;
-            }
+            $hasAssignedCodes = $department->fresh('courses')->hasAssignedCourseCodes();
 
-            if ($hasCourseCodesAssignedAt) {
-                $statusReset['course_codes_assigned_at'] = null;
-            }
+            if (! $hasAssignedCodes) {
+                $statusReset = [];
 
-            if ($hasCourseCodesAssignedByUserId) {
-                $statusReset['course_codes_assigned_by_user_id'] = null;
-            }
+                if ($hasCoursesSubmittedToCdcAt) {
+                    $statusReset['courses_submitted_to_cdc_at'] = null;
+                }
 
-            if ($statusReset !== []) {
-                $department->update($statusReset);
+                if ($hasCoursesSubmittedByUserId) {
+                    $statusReset['courses_submitted_by_user_id'] = null;
+                }
+
+                if ($hasCourseCodesAssignedAt) {
+                    $statusReset['course_codes_assigned_at'] = null;
+                }
+
+                if ($hasCourseCodesAssignedByUserId) {
+                    $statusReset['course_codes_assigned_by_user_id'] = null;
+                }
+
+                if ($statusReset !== []) {
+                    $department->update($statusReset);
+                }
             }
         });
 

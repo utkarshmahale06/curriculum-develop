@@ -79,7 +79,15 @@ class Department extends Model
         $courses = $this->relationLoaded('courses') ? $this->courses : $this->courses()->get();
 
         return $courses->isNotEmpty()
-            && $courses->every(fn (Course $course) => Str::startsWith((string) $course->course_code, 'SUBMITTED-'));
+            && (
+                $courses->every(fn (Course $course) => Str::startsWith((string) $course->course_code, 'SUBMITTED-'))
+                || $courses->contains(function (Course $course) {
+                    $code = (string) $course->course_code;
+
+                    return $code !== ''
+                        && ! Str::startsWith($code, ['DRAFT-', 'SUBMITTED-', 'PENDING-']);
+                })
+            );
     }
 
     /**
@@ -93,8 +101,7 @@ class Department extends Model
 
         $courses = $this->relationLoaded('courses') ? $this->courses : $this->courses()->get();
 
-        return $courses->isNotEmpty()
-            && $courses->every(function (Course $course) {
+        return $courses->contains(function (Course $course) {
                 $code = (string) $course->course_code;
 
                 return $code !== ''

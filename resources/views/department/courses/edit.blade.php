@@ -20,6 +20,7 @@
     })->values()->all();
     $existingCourses = old('courses', $department->courses->map(function ($course) {
         return [
+            'id' => $course->id,
             'course_basket_id' => $course->course_basket_id,
             'semester_name' => $course->semester_name,
             'sr_no' => $course->sr_no,
@@ -206,7 +207,7 @@
         const row = document.createElement('tr');
 
         row.innerHTML = `
-            <td>${basketSelect(index, data.course_basket_id ?? '')}</td>
+            <td>${hiddenInput(index, 'id', data.id ?? '')}${basketSelect(index, data.course_basket_id ?? '')}</td>
             <td>${semesterSelect(index, data.semester_name ?? '')}</td>
             <td>${numberInput(index, 'sr_no', data.sr_no ?? '', 1)}</td>
             <td>${textInput(index, 'course_title', data.course_title ?? '', 'Course title')}</td>
@@ -290,6 +291,10 @@
     function textInput(index, field, value, placeholder, readonly = false) {
         const readonlyAttribute = readonly ? 'readonly' : '';
         return `<input type="text" name="courses[${index}][${field}]" value="${escapeHtml(value)}" placeholder="${placeholder}" ${readonlyAttribute}>`;
+    }
+
+    function hiddenInput(index, field, value) {
+        return `<input type="hidden" name="courses[${index}][${field}]" value="${escapeHtml(value)}">`;
     }
 
     function numberInput(index, field, value, min, cssClass = '', step = '1') {

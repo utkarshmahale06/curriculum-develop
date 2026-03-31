@@ -3,6 +3,12 @@
 @section('title', 'Designed Courses')
 
 @section('content')
+@php
+    $showCourseCodeColumn = $department->courses->contains(function ($course) {
+        return filled($course->course_code)
+            && ! \Illuminate\Support\Str::startsWith($course->course_code, ['DRAFT-', 'SUBMITTED-', 'PENDING-']);
+    });
+@endphp
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 22px;">
         <div>
@@ -29,6 +35,9 @@
                         <tr>
                             <th>Sr No</th>
                             <th>Basket</th>
+                            @if($showCourseCodeColumn)
+                                <th>Course Code</th>
+                            @endif
                             <th>Course Title</th>
                             <th>Abbrev.</th>
                             <th>Course Type</th>
@@ -58,6 +67,9 @@
                             <tr>
                                 <td>{{ $course->sr_no }}</td>
                                 <td>{{ $course->courseBasket?->basket_name ?? '-' }}</td>
+                                @if($showCourseCodeColumn)
+                                    <td>{{ $course->course_code && ! \Illuminate\Support\Str::startsWith($course->course_code, ['DRAFT-', 'SUBMITTED-', 'PENDING-']) ? $course->course_code : 'Pending CDC allocation' }}</td>
+                                @endif
                                 <td>{{ $course->course_title }}</td>
                                 <td>{{ $course->abbreviation }}</td>
                                 <td>{{ $course->course_type }}</td>
