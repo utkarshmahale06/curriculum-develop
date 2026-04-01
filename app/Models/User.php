@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -24,6 +25,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'department_id',
     ];
 
     /**
@@ -43,6 +45,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if the user has the HOD role.
+     */
+    public function isHod(): bool
+    {
+        return $this->role === 'hod';
+    }
+
+    /**
+     * Check if the user has the faculty role.
+     */
+    public function isFaculty(): bool
+    {
+        return $this->role === 'faculty';
+    }
+
+    /**
      * Get the schemes assigned to the department user.
      */
     public function assignedDepartments(): HasMany
@@ -51,11 +69,27 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the programme/department context linked to this user.
+     */
+    public function linkedDepartment(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    /**
      * Get the courses designed by the department user.
      */
     public function designedCourses(): HasMany
     {
         return $this->hasMany(Course::class, 'created_by');
+    }
+
+    /**
+     * Get the courses assigned to the faculty user.
+     */
+    public function facultyCourses(): HasMany
+    {
+        return $this->hasMany(Course::class, 'faculty_user_id');
     }
 
     /**

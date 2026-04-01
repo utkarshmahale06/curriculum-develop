@@ -21,6 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('department.dashboard');
             }
 
+            if ($user instanceof User && $user->isHod()) {
+                return route('hod.dashboard');
+            }
+
+            if ($user instanceof User && $user->isFaculty()) {
+                return route('faculty.dashboard');
+            }
+
             if ($user instanceof User && $user->isCdc()) {
                 return route('cdc.dashboard');
             }
@@ -29,14 +37,26 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         Authenticate::redirectUsing(function ($request) {
-            return $request->is('department') || $request->is('department/*')
-                ? route('department.login')
-                : route('login');
+            if ($request->is('department') || $request->is('department/*')) {
+                return route('department.login');
+            }
+
+            if ($request->is('hod') || $request->is('hod/*')) {
+                return route('hod.login');
+            }
+
+            if ($request->is('faculty') || $request->is('faculty/*')) {
+                return route('faculty.login');
+            }
+
+            return route('login');
         });
 
         $middleware->alias([
             'cdc' => \App\Http\Middleware\CdcMiddleware::class,
             'department' => \App\Http\Middleware\DepartmentMiddleware::class,
+            'hod' => \App\Http\Middleware\HodMiddleware::class,
+            'faculty' => \App\Http\Middleware\FacultyMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

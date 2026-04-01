@@ -38,10 +38,12 @@
         </form>
 
         <div style="margin-top: 18px; padding-top: 18px; border-top: 1px solid #e5e7eb; text-align: center;">
-            <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">Department users can use their own login portal.</p>
-            <div style="display: flex; gap: 10px; justify-content: center;">
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">Other roles can use their own portals.</p>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                 <a href="{{ route('department.login') }}" class="btn btn-secondary">Department Login</a>
                 <a href="{{ route('department.register') }}" class="btn btn-success">First Login Signup</a>
+                <a href="{{ route('hod.login') }}" class="btn btn-secondary">HOD Login</a>
+                <a href="{{ route('faculty.login') }}" class="btn btn-secondary">Faculty Login</a>
             </div>
         </div>
     </div>

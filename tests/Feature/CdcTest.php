@@ -23,6 +23,28 @@ function createDepartmentUser(array $overrides = []): User
     ], $overrides));
 }
 
+function createHodUser(Department $department, array $overrides = []): User
+{
+    return User::create(array_merge([
+        'name' => 'HOD User',
+        'email' => 'hod@example.com',
+        'password' => bcrypt('password123'),
+        'role' => 'hod',
+        'department_id' => $department->id,
+    ], $overrides));
+}
+
+function createFacultyUser(Department $department, array $overrides = []): User
+{
+    return User::create(array_merge([
+        'name' => 'Faculty User',
+        'email' => 'faculty@example.com',
+        'password' => bcrypt('password123'),
+        'role' => 'faculty',
+        'department_id' => $department->id,
+    ], $overrides));
+}
+
 function createRegularUser(): User
 {
     return User::create([
@@ -527,4 +549,80 @@ test('department user cannot design courses for scheme assigned to another user'
     $response = $this->actingAs($otherUser)->get(route('department.courses.edit', $department));
 
     $response->assertForbidden();
+});
+
+test('hod user can login through hod portal', function () {
+    $department = createProgramme();
+    $hod = createHodUser($department);
+
+    $response = $this->post(route('hod.login.submit'), [
+        'email' => $hod->email,
+        'password' => 'password123',
+    ]);
+
+    $response->assertRedirect(route('hod.dashboard'));
+    $this->assertAuthenticatedAs($hod);
+});
+
+test('faculty user can login through faculty portal', function () {
+    $department = createProgramme();
+    $faculty = createFacultyUser($department);
+
+    $response = $this->post(route('faculty.login.submit'), [
+        'email' => $faculty->email,
+        'password' => 'password123',
+    ]);
+
+    $response->assertRedirect(route('faculty.dashboard'));
+    $this->assertAuthenticatedAs($faculty);
+});
+
+test('hod user can assign faculty to designed courses', function () {
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hod = createHodUser($department);
+    $faculty = createFacultyUser($department);
+
+    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => validCourseRows($department),
+    ]);
+
+    $department = $department->fresh('courses');
+    $assignments = [];
+
+    foreach ($department->courses as $course) {
+        $assignments[$course->id] = $faculty->id;
+    }
+
+    $response = $this->actingAs($hod)->post(route('hod.faculty-assignments.update', $department), [
+        'faculty_assignments' => $assignments,
+    ]);
+
+    $response->assertRedirect(route('hod.dashboard'));
+    $this->assertDatabaseHas('courses', [
+        'id' => $department->courses->first()->id,
+        'faculty_user_id' => $faculty->id,
+    ]);
+});
+
+test('faculty dashboard shows assigned subjects', function () {
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $faculty = createFacultyUser($department);
+
+    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => validCourseRows($department),
+    ]);
+
+    $course = $department->fresh('courses')->courses->first();
+    $course->update([
+        'faculty_user_id' => $faculty->id,
+    ]);
+
+    $response = $this->actingAs($faculty)->get(route('faculty.dashboard'));
+
+    $response->assertOk();
+    $response->assertSee('Faculty Dashboard');
+    $response->assertSee($department->name);
+    $response->assertSee($course->course_title);
 });

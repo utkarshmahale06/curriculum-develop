@@ -44,6 +44,7 @@ class Course extends Model
         'sla_min',
         'marks',
         'total_marks',
+        'faculty_user_id',
     ];
 
     /**
@@ -68,5 +69,13 @@ class Course extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the faculty user assigned by HOD.
+     */
+    public function assignedFaculty(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'faculty_user_id');
     }
 }

@@ -44,6 +44,22 @@ class Department extends Model
     }
 
     /**
+     * Get the HOD user linked to this scheme.
+     */
+    public function hodUsers(): HasMany
+    {
+        return $this->hasMany(User::class, 'department_id')->where('role', 'hod');
+    }
+
+    /**
+     * Get the faculty users linked to this scheme.
+     */
+    public function facultyUsers(): HasMany
+    {
+        return $this->hasMany(User::class, 'department_id')->where('role', 'faculty');
+    }
+
+    /**
      * Get the department user who submitted the courses to CDC.
      */
     public function courseSubmittedBy(): BelongsTo
