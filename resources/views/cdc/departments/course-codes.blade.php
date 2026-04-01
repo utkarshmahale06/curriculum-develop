@@ -13,7 +13,7 @@
     </div>
 
     <div class="alert alert-warning">
-        Department submitted these courses on {{ $department->courses_submitted_to_cdc_at?->format('d M Y, h:i A') }}. Enter a unique course code for each row and save.
+        CDC approved this programme design{{ $department->cdc_reviewed_at ? ' on ' . $department->cdc_reviewed_at->format('d M Y, h:i A') : '' }}. Enter a unique course code for each row and save.
     </div>
 
     @if($errors->any())

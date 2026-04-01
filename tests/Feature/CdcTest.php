@@ -195,15 +195,19 @@ test('cdc user can login and is redirected to cdc dashboard', function () {
     $this->assertAuthenticatedAs($user);
 });
 
-test('department user can create account on first login and lands on department dashboard', function () {
-    $response = $this->post(route('department.register.submit'), [
+test('cdc user can create a department account', function () {
+    $cdc = createCdcUser();
+
+    $response = $this->actingAs($cdc)->post(route('cdc.users.store'), [
         'name' => 'Department User',
         'email' => 'department@example.com',
+        'role' => 'department',
+        'department_id' => null,
         'password' => 'password123',
         'password_confirmation' => 'password123',
     ]);
 
-    $response->assertRedirect(route('department.dashboard'));
+    $response->assertRedirect(route('cdc.users.index'));
     $response->assertSessionHas('success', 'Department account created successfully.');
 
     $this->assertDatabaseHas('users', [
@@ -382,6 +386,10 @@ test('cdc user can allocate course codes after department submission', function 
 
     $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
 
+    $this->actingAs($cdc)->post(route('cdc.departments.approve', $department), [
+        'cdc_review_remarks' => 'Design approved.',
+    ]);
+
     $department = $department->fresh('courses');
     $courseCodes = [];
 
@@ -413,6 +421,10 @@ test('department edits do not clear cdc assigned course codes', function () {
 
     $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
 
+    $this->actingAs($cdc)->post(route('cdc.departments.approve', $department), [
+        'cdc_review_remarks' => 'Design approved.',
+    ]);
+
     $department = $department->fresh('courses');
     $courseCodes = [];
 
@@ -440,6 +452,29 @@ test('department edits do not clear cdc assigned course codes', function () {
         'department_id' => $department->id,
         'course_title' => 'Applied Physics Updated',
         'course_code' => 'CDC-001',
+    ]);
+});
+
+test('cdc user can request revision before code allocation', function () {
+    $cdc = createCdcUser();
+    $departmentUser = createDepartmentUser();
+    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+
+    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+        'courses' => validCourseRows($department),
+    ]);
+
+    $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
+
+    $response = $this->actingAs($cdc)->post(route('cdc.departments.request-revision', $department), [
+        'cdc_review_remarks' => 'Please revise basket alignment notes.',
+    ]);
+
+    $response->assertRedirect(route('cdc.departments.show', $department));
+    $this->assertDatabaseHas('departments', [
+        'id' => $department->id,
+        'cdc_review_status' => 'revision_requested',
+        'cdc_review_remarks' => 'Please revise basket alignment notes.',
     ]);
 });
 

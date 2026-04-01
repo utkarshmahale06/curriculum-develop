@@ -7,13 +7,40 @@
     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 22px;">
         <div>
             <h2 style="margin-bottom: 6px;">Department Dashboard</h2>
-            <p style="color: #6b7280;">Welcome, {{ Auth::user()->name }}. Design courses for the schemes assigned to you.</p>
+            <p style="color: #6b7280;">Welcome, {{ Auth::user()->name }}. Design courses for the programmes assigned to you and track CDC review status.</p>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px;">
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Total</div>
+            <div style="font-size: 20px; font-weight: 600;">{{ $summary['total'] }}</div>
+        </div>
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Draft</div>
+            <div style="font-size: 20px; font-weight: 600;">{{ $summary['draft'] }}</div>
+        </div>
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Submitted</div>
+            <div style="font-size: 20px; font-weight: 600;">{{ $summary['submitted'] }}</div>
+        </div>
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Revision</div>
+            <div style="font-size: 20px; font-weight: 600;">{{ $summary['revision_requested'] }}</div>
+        </div>
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Approved</div>
+            <div style="font-size: 20px; font-weight: 600;">{{ $summary['approved'] }}</div>
+        </div>
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Codes Assigned</div>
+            <div style="font-size: 20px; font-weight: 600;">{{ $summary['codes_assigned'] }}</div>
         </div>
     </div>
 
     @if($assignedDepartments->isEmpty())
         <div class="alert alert-warning">
-            No scheme is assigned to your account yet. Ask CDC to assign a programme from the scheme list.
+            No programme is assigned to your account yet. Ask CDC to assign one from the programme list.
         </div>
     @else
         <div style="display: grid; gap: 18px;">
@@ -30,10 +57,18 @@
                         $workflowLabel = 'CDC codes assigned';
                         $workflowColor = '#166534';
                         $workflowBackground = '#f0fdf4';
+                    } elseif ($department->cdc_review_status === 'revision_requested') {
+                        $workflowLabel = 'Revision requested';
+                        $workflowColor = '#991b1b';
+                        $workflowBackground = '#fef2f2';
                     } elseif ($isSubmittedToCdc) {
-                        $workflowLabel = 'Sent to CDC';
+                        $workflowLabel = 'Awaiting CDC review';
                         $workflowColor = '#92400e';
                         $workflowBackground = '#fffbeb';
+                    } elseif ($department->cdc_review_status === 'approved') {
+                        $workflowLabel = 'Approved by CDC';
+                        $workflowColor = '#166534';
+                        $workflowBackground = '#ecfdf5';
                     } elseif ($isReadyToSubmit) {
                         $workflowLabel = 'Ready for CDC';
                         $workflowColor = '#1d4ed8';
@@ -58,9 +93,17 @@
                             <div style="width: 100%; max-width: 380px; background: #e5e7eb; border-radius: 999px; height: 10px; overflow: hidden; margin-bottom: 12px;">
                                 <div style="width: {{ $progress }}%; background: {{ $progress === 100 ? '#16a34a' : '#2563eb' }}; height: 100%;"></div>
                             </div>
-                            @if($isSubmittedToCdc && ! $areCourseCodesAssigned)
+                            @if($department->cdc_review_status === 'revision_requested')
+                                <p style="color: #991b1b; font-size: 13px; margin-bottom: 12px;">
+                                    CDC requested revisions{{ $department->cdc_review_remarks ? ': ' . $department->cdc_review_remarks : '.' }}
+                                </p>
+                            @elseif($isSubmittedToCdc && ! $areCourseCodesAssigned && $department->cdc_review_status !== 'approved')
                                 <p style="color: #92400e; font-size: 13px; margin-bottom: 12px;">
-                                    Submitted to CDC on {{ $department->courses_submitted_to_cdc_at?->format('d M Y, h:i A') }}. Course codes will appear after CDC allocation.
+                                    Submitted to CDC on {{ $department->courses_submitted_to_cdc_at?->format('d M Y, h:i A') }}. Waiting for CDC review.
+                                </p>
+                            @elseif($department->cdc_review_status === 'approved')
+                                <p style="color: #166534; font-size: 13px; margin-bottom: 12px;">
+                                    CDC approved the course design. Final course codes will appear after allocation.
                                 </p>
                             @elseif($areCourseCodesAssigned)
                                 <p style="color: #166534; font-size: 13px; margin-bottom: 12px;">
@@ -87,14 +130,18 @@
                             <a href="{{ route('department.courses.edit', $department) }}" class="btn btn-primary">
                                 {{ $designedCourses < $requiredCourses ? 'Design Remaining Courses' : 'Design Courses' }}
                             </a>
-                            @if($isSubmittedToCdc)
+                            @if($areCourseCodesAssigned)
                                 <button type="button" class="btn btn-secondary" disabled>
-                                    {{ $areCourseCodesAssigned ? 'Codes Assigned by CDC' : 'Sent to CDC' }}
+                                    Codes Assigned by CDC
+                                </button>
+                            @elseif($isSubmittedToCdc)
+                                <button type="button" class="btn btn-secondary" disabled>
+                                    {{ $department->cdc_review_status === 'approved' ? 'Approved by CDC' : ($department->cdc_review_status === 'revision_requested' ? 'Revision Requested' : 'Under CDC Review') }}
                                 </button>
                             @elseif($isReadyToSubmit)
                                 <form action="{{ route('department.courses.submit', $department) }}" method="POST">
                                     @csrf
-                                    <button type="submit" class="btn btn-success" style="width: 100%;">Send All Courses to CDC</button>
+                                    <button type="submit" class="btn btn-success" style="width: 100%;">Submit For CDC Review</button>
                                 </form>
                             @endif
                         </div>

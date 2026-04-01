@@ -52,13 +52,32 @@
     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 22px;">
         <div>
             <h2 style="margin-bottom: 6px;">Design Courses</h2>
-            <p style="color: #6b7280;">Scheme: <strong>{{ $department->name }}</strong>. The table below follows the Excel course-structure format.</p>
+            <p style="color: #6b7280;">Programme: <strong>{{ $department->name }}</strong>. The table below follows the Excel course-structure format and now supports local browser autosave.</p>
         </div>
         <a href="{{ route('department.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
     </div>
 
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px;">
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Programme Code</div>
+            <div style="font-size: 18px; font-weight: 600;">{{ $department->code }}</div>
+        </div>
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Academic Year</div>
+            <div style="font-size: 18px; font-weight: 600;">{{ $department->year }}</div>
+        </div>
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Required Course Slots</div>
+            <div style="font-size: 18px; font-weight: 600;">{{ $requiredCourseCount }}</div>
+        </div>
+        <div class="card" style="padding: 14px;">
+            <div style="font-size: 12px; color: #6b7280;">Current CDC Status</div>
+            <div style="font-size: 18px; font-weight: 600;">{{ $department->workflowLabel() }}</div>
+        </div>
+    </div>
+
     <div class="alert alert-warning">
-        Match the required number of courses for each basket and keep the combined totals of CL, TL, LL, Hours, Credits, and Marks equal to the CDC scheme: {{ $basketOptions->map(fn ($basket) => $basket->basket_name . ' (' . $basket->courses . ' courses, total ' . ($basket->cl ?? 0) . '-' . ($basket->tl ?? 0) . '-' . ($basket->ll ?? 0) . ', ' . $basket->credits . ' credits, ' . $basket->marks . ' marks)')->implode(', ') }}.
+        Match the required number of courses for each basket and keep the combined totals of CL, TL, LL, Hours, Credits, and Marks equal to the CDC-approved programme basket: {{ $basketOptions->map(fn ($basket) => $basket->basket_name . ' (' . $basket->courses . ' courses, total ' . ($basket->cl ?? 0) . '-' . ($basket->tl ?? 0) . '-' . ($basket->ll ?? 0) . ', ' . $basket->credits . ' credits, ' . $basket->marks . ' marks)')->implode(', ') }}.
     </div>
 
     <div class="alert alert-success">
@@ -69,6 +88,16 @@
 
     <div class="alert alert-success">
         You can use <strong>Save Draft</strong> to store partially completed course rows. Use <strong>Final Save</strong> only when the basket totals fully match the CDC scheme.
+    </div>
+
+    @if($department->cdc_review_status === 'revision_requested' && $department->cdc_review_remarks)
+        <div class="alert alert-error">
+            <strong>CDC Revision Note:</strong> {{ $department->cdc_review_remarks }}
+        </div>
+    @endif
+
+    <div class="alert alert-warning">
+        Large form tip: your row data is saved automatically in this browser while you work. Submitting the form clears the local autosave snapshot.
     </div>
 
     @if($errors->any())
@@ -87,7 +116,7 @@
             <button type="button" class="btn btn-primary" id="addCourseRow">+ Add Course</button>
         </div>
 
-        <div style="overflow-x: auto; border-radius: 8px;">
+        <div class="course-table-shell">
             <table id="courseTable">
                 <thead>
                     <tr>
@@ -137,6 +166,17 @@
         white-space: nowrap;
         vertical-align: top;
     }
+    .course-table-shell {
+        overflow-x: auto;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        max-height: 68vh;
+    }
+    #courseTable thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
     #courseTable input,
     #courseTable select {
         width: 100%;
@@ -173,6 +213,11 @@
         border-color: #ef4444 !important;
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
     }
+    @media (max-width: 900px) {
+        .course-table-shell {
+            max-height: none;
+        }
+    }
 </style>
 
 <script>
@@ -180,16 +225,23 @@
     const semesterOptions = @json($semesterOptions);
     const existingCourses = @json($existingCourses);
     const requiredCourseCount = @json($requiredCourseCount);
+    const autosaveKey = 'course-design-{{ $department->id }}';
     let rowIndex = 0;
 
     document.addEventListener('DOMContentLoaded', function () {
-        if (existingCourses.length > 0) {
-            existingCourses.forEach(function (course) {
+        const restoredCourses = resolveInitialCourses();
+
+        if (restoredCourses.length > 0) {
+            restoredCourses.forEach(function (course) {
                 addRow(course);
             });
         } else {
             addRow();
         }
+
+        document.getElementById('courseDesignForm').addEventListener('submit', function () {
+            localStorage.removeItem(autosaveKey);
+        });
     });
 
     document.getElementById('addCourseRow').addEventListener('click', function () {
@@ -249,19 +301,27 @@
         row.querySelectorAll('.metric').forEach(function (input) {
             input.addEventListener('input', function () {
                 recalcRow(row);
+                persistDraft();
             });
         });
 
         row.querySelectorAll('.assessment').forEach(function (input) {
             input.addEventListener('input', function () {
                 recalcRow(row);
+                persistDraft();
             });
+        });
+
+        row.querySelectorAll('input, select').forEach(function (input) {
+            input.addEventListener('change', persistDraft);
+            input.addEventListener('input', persistDraft);
         });
 
         row.querySelector('.remove-row').addEventListener('click', function () {
             row.remove();
             updateAddButtonState();
             validateAllRows();
+            persistDraft();
         });
 
         syncCourseType(row);
@@ -428,6 +488,44 @@
         submitButton.style.opacity = hasWarnings ? '0.6' : '1';
         submitButton.style.cursor = hasWarnings ? 'not-allowed' : 'pointer';
         submitButton.title = hasWarnings ? 'Resolve the row warnings before saving.' : '';
+    }
+
+    function resolveInitialCourses() {
+        if (existingCourses.length > 0) {
+            return existingCourses;
+        }
+
+        try {
+            const stored = localStorage.getItem(autosaveKey);
+
+            if (! stored) {
+                return [];
+            }
+
+            const parsed = JSON.parse(stored);
+
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function persistDraft() {
+        const rows = Array.from(document.querySelectorAll('#courseTableBody tr')).map(function (row) {
+            const rowData = {};
+
+            row.querySelectorAll('input[name^="courses["], select[name^="courses["]').forEach(function (input) {
+                const match = input.name.match(/\[([^\]]+)\]$/);
+
+                if (match) {
+                    rowData[match[1]] = input.value;
+                }
+            });
+
+            return rowData;
+        });
+
+        localStorage.setItem(autosaveKey, JSON.stringify(rows));
     }
 </script>
 @endsection

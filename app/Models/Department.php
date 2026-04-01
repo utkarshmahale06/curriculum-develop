@@ -25,6 +25,10 @@ class Department extends Model
         'courses_submitted_by_user_id',
         'course_codes_assigned_at',
         'course_codes_assigned_by_user_id',
+        'cdc_review_status',
+        'cdc_review_remarks',
+        'cdc_reviewed_at',
+        'cdc_reviewed_by_user_id',
     ];
 
     /**
@@ -76,6 +80,14 @@ class Department extends Model
     }
 
     /**
+     * Get the CDC user who reviewed the submitted design.
+     */
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cdc_reviewed_by_user_id');
+    }
+
+    /**
      * Get the designed courses for this scheme.
      */
     public function courses(): HasMany
@@ -88,6 +100,10 @@ class Department extends Model
      */
     public function hasSubmittedCoursesToCdc(): bool
     {
+        if (Schema::hasColumn('departments', 'cdc_review_status') && in_array($this->cdc_review_status, ['submitted', 'revision_requested', 'approved', 'codes_assigned'], true)) {
+            return true;
+        }
+
         if (Schema::hasColumn('departments', 'courses_submitted_to_cdc_at') && $this->courses_submitted_to_cdc_at) {
             return true;
         }
@@ -111,6 +127,10 @@ class Department extends Model
      */
     public function hasAssignedCourseCodes(): bool
     {
+        if (Schema::hasColumn('departments', 'cdc_review_status') && $this->cdc_review_status === 'codes_assigned') {
+            return true;
+        }
+
         if (Schema::hasColumn('departments', 'course_codes_assigned_at') && $this->course_codes_assigned_at) {
             return true;
         }
@@ -126,6 +146,30 @@ class Department extends Model
     }
 
     /**
+     * Determine whether CDC approved the submitted design.
+     */
+    public function isApprovedByCdc(): bool
+    {
+        return Schema::hasColumn('departments', 'cdc_review_status')
+            ? in_array($this->cdc_review_status, ['approved', 'codes_assigned'], true)
+            : $this->hasSubmittedCoursesToCdc();
+    }
+
+    /**
+     * Get a normalized workflow label for the scheme.
+     */
+    public function workflowLabel(): string
+    {
+        return match ($this->cdc_review_status) {
+            'submitted' => 'Awaiting CDC review',
+            'revision_requested' => 'Revision requested',
+            'approved' => 'Approved by CDC',
+            'codes_assigned' => 'Course codes assigned',
+            default => $this->courses()->exists() ? 'Draft in progress' : 'Not started',
+        };
+    }
+
+    /**
      * Cast timestamp workflow fields.
      *
      * @return array<string, string>
@@ -135,6 +179,7 @@ class Department extends Model
         return [
             'courses_submitted_to_cdc_at' => 'datetime',
             'course_codes_assigned_at' => 'datetime',
+            'cdc_reviewed_at' => 'datetime',
         ];
     }
 }

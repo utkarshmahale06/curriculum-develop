@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Cdc\CdcDashboardController;
 use App\Http\Controllers\Cdc\CdcDepartmentController;
 use App\Http\Controllers\Cdc\CdcSchemeAssignmentController;
+use App\Http\Controllers\Cdc\CdcUserManagementController;
 use App\Http\Controllers\Department\DepartmentCourseController;
 use App\Http\Controllers\Department\DepartmentDashboardController;
 use App\Http\Controllers\Faculty\FacultyDashboardController;
@@ -37,16 +38,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/department/login', [AuthController::class, 'showDepartmentLoginForm'])->name('department.login');
     Route::post('/department/login', [AuthController::class, 'departmentLogin'])->name('department.login.submit');
-    Route::get('/department/register', [AuthController::class, 'showDepartmentRegisterForm'])->name('department.register');
-    Route::post('/department/register', [AuthController::class, 'departmentRegister'])->name('department.register.submit');
     Route::get('/hod/login', [AuthController::class, 'showHodLoginForm'])->name('hod.login');
     Route::post('/hod/login', [AuthController::class, 'hodLogin'])->name('hod.login.submit');
     Route::get('/hod/register', [AuthController::class, 'showHodRegisterForm'])->name('hod.register');
-    Route::post('/hod/register', [AuthController::class, 'hodRegister'])->name('hod.register.submit');
     Route::get('/faculty/login', [AuthController::class, 'showFacultyLoginForm'])->name('faculty.login');
     Route::post('/faculty/login', [AuthController::class, 'facultyLogin'])->name('faculty.login.submit');
     Route::get('/faculty/register', [AuthController::class, 'showFacultyRegisterForm'])->name('faculty.register');
-    Route::post('/faculty/register', [AuthController::class, 'facultyRegister'])->name('faculty.register.submit');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
@@ -54,12 +51,17 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 // CDC routes
 Route::prefix('cdc')->middleware(['auth', 'cdc'])->group(function () {
     Route::get('/dashboard', [CdcDashboardController::class, 'index'])->name('cdc.dashboard');
+    Route::get('/users', [CdcUserManagementController::class, 'index'])->name('cdc.users.index');
+    Route::get('/users/create', [CdcUserManagementController::class, 'create'])->name('cdc.users.create');
+    Route::post('/users', [CdcUserManagementController::class, 'store'])->name('cdc.users.store');
     Route::get('/departments', [CdcDepartmentController::class, 'index'])->name('cdc.departments.index');
     Route::get('/departments/create', [CdcDepartmentController::class, 'create'])->name('cdc.departments.create');
     Route::post('/departments/store', [CdcDepartmentController::class, 'store'])->name('cdc.departments.store');
     Route::get('/departments/{department}', [CdcSchemeAssignmentController::class, 'show'])->name('cdc.departments.show');
     Route::get('/departments/{department}/assign', [CdcSchemeAssignmentController::class, 'edit'])->name('cdc.departments.assign');
     Route::post('/departments/{department}/assign', [CdcSchemeAssignmentController::class, 'update'])->name('cdc.departments.assign.update');
+    Route::post('/departments/{department}/approve', [CdcSchemeAssignmentController::class, 'approve'])->name('cdc.departments.approve');
+    Route::post('/departments/{department}/request-revision', [CdcSchemeAssignmentController::class, 'requestRevision'])->name('cdc.departments.request-revision');
     Route::get('/departments/{department}/course-codes', [CdcSchemeAssignmentController::class, 'editCourseCodes'])->name('cdc.departments.course-codes.edit');
     Route::post('/departments/{department}/course-codes', [CdcSchemeAssignmentController::class, 'updateCourseCodes'])->name('cdc.departments.course-codes.update');
 });

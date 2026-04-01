@@ -17,7 +17,7 @@ class CdcSchemeAssignmentController extends Controller
      */
     public function show(Department $department)
     {
-        $department->load(['assignedUser', 'courseBaskets', 'courses.courseBasket', 'courseSubmittedBy', 'courseCodesAssignedBy']);
+        $department->load(['assignedUser', 'courseBaskets', 'courses.courseBasket', 'courseSubmittedBy', 'courseCodesAssignedBy', 'reviewedBy']);
 
         return view('cdc.departments.show', compact('department'));
     }
@@ -34,6 +34,60 @@ class CdcSchemeAssignmentController extends Controller
             ->get();
 
         return view('cdc.departments.assign', compact('department', 'departmentUsers'));
+    }
+
+    /**
+     * Approve a submitted scheme design.
+     */
+    public function approve(Request $request, Department $department)
+    {
+        if (! $department->hasSubmittedCoursesToCdc()) {
+            return redirect()->route('cdc.departments.show', $department)
+                ->with('error', 'The department must submit the designed courses before CDC can review them.');
+        }
+
+        $validated = $request->validate([
+            'cdc_review_remarks' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $department->update([
+            'cdc_review_status' => $department->hasAssignedCourseCodes() ? 'codes_assigned' : 'approved',
+            'cdc_review_remarks' => $validated['cdc_review_remarks'] ?: null,
+            'cdc_reviewed_at' => now(),
+            'cdc_reviewed_by_user_id' => Auth::id(),
+        ]);
+
+        return redirect()->route('cdc.departments.show', $department)
+            ->with('success', 'Programme design approved successfully.');
+    }
+
+    /**
+     * Return a submitted scheme for revision.
+     */
+    public function requestRevision(Request $request, Department $department)
+    {
+        if (! $department->hasSubmittedCoursesToCdc()) {
+            return redirect()->route('cdc.departments.show', $department)
+                ->with('error', 'The department must submit the designed courses before CDC can request revisions.');
+        }
+
+        $validated = $request->validate([
+            'cdc_review_remarks' => ['required', 'string', 'max:2000'],
+        ], [
+            'cdc_review_remarks.required' => 'Enter CDC remarks before sending the design back for revision.',
+        ]);
+
+        $department->update([
+            'cdc_review_status' => 'revision_requested',
+            'cdc_review_remarks' => trim($validated['cdc_review_remarks']),
+            'cdc_reviewed_at' => now(),
+            'cdc_reviewed_by_user_id' => Auth::id(),
+            'course_codes_assigned_at' => null,
+            'course_codes_assigned_by_user_id' => null,
+        ]);
+
+        return redirect()->route('cdc.departments.show', $department)
+            ->with('success', 'Revision request sent to the department.');
     }
 
     /**
@@ -76,6 +130,11 @@ class CdcSchemeAssignmentController extends Controller
                 ->with('error', 'The department must submit the designed courses before CDC can allocate course codes.');
         }
 
+        if (! $department->isApprovedByCdc()) {
+            return redirect()->route('cdc.departments.show', $department)
+                ->with('error', 'Approve the submitted course design before allocating course codes.');
+        }
+
         return view('cdc.departments.course-codes', compact('department'));
     }
 
@@ -89,6 +148,11 @@ class CdcSchemeAssignmentController extends Controller
         if (! $department->hasSubmittedCoursesToCdc()) {
             return redirect()->route('cdc.departments.show', $department)
                 ->with('error', 'The department must submit the designed courses before CDC can allocate course codes.');
+        }
+
+        if (! $department->isApprovedByCdc()) {
+            return redirect()->route('cdc.departments.show', $department)
+                ->with('error', 'Approve the submitted course design before allocating course codes.');
         }
 
         $courseIds = $department->courses->pluck('id')->all();
@@ -129,6 +193,14 @@ class CdcSchemeAssignmentController extends Controller
 
             if ($assignmentData !== []) {
                 $department->update($assignmentData);
+            }
+
+            if (Schema::hasColumn('departments', 'cdc_review_status')) {
+                $department->update([
+                    'cdc_review_status' => 'codes_assigned',
+                    'cdc_reviewed_at' => now(),
+                    'cdc_reviewed_by_user_id' => Auth::id(),
+                ]);
             }
         });
 

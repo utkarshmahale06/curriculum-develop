@@ -167,6 +167,10 @@ class DepartmentCourseController extends Controller
             $hasCoursesSubmittedByUserId = Schema::hasColumn('departments', 'courses_submitted_by_user_id');
             $hasCourseCodesAssignedAt = Schema::hasColumn('departments', 'course_codes_assigned_at');
             $hasCourseCodesAssignedByUserId = Schema::hasColumn('departments', 'course_codes_assigned_by_user_id');
+            $hasCdcReviewStatus = Schema::hasColumn('departments', 'cdc_review_status');
+            $hasCdcReviewRemarks = Schema::hasColumn('departments', 'cdc_review_remarks');
+            $hasCdcReviewedAt = Schema::hasColumn('departments', 'cdc_reviewed_at');
+            $hasCdcReviewedByUserId = Schema::hasColumn('departments', 'cdc_reviewed_by_user_id');
 
             foreach ($validated['courses'] as $course) {
                 $existingCourse = isset($course['id']) ? $existingCourses->get((int) $course['id']) : null;
@@ -258,6 +262,22 @@ class DepartmentCourseController extends Controller
                     $statusReset['course_codes_assigned_by_user_id'] = null;
                 }
 
+                if ($hasCdcReviewStatus) {
+                    $statusReset['cdc_review_status'] = 'draft';
+                }
+
+                if ($hasCdcReviewRemarks) {
+                    $statusReset['cdc_review_remarks'] = null;
+                }
+
+                if ($hasCdcReviewedAt) {
+                    $statusReset['cdc_reviewed_at'] = null;
+                }
+
+                if ($hasCdcReviewedByUserId) {
+                    $statusReset['cdc_reviewed_by_user_id'] = null;
+                }
+
                 if ($statusReset !== []) {
                     $department->update($statusReset);
                 }
@@ -301,6 +321,22 @@ class DepartmentCourseController extends Controller
 
         if (Schema::hasColumn('departments', 'course_codes_assigned_by_user_id')) {
             $submissionData['course_codes_assigned_by_user_id'] = null;
+        }
+
+        if (Schema::hasColumn('departments', 'cdc_review_status')) {
+            $submissionData['cdc_review_status'] = 'submitted';
+        }
+
+        if (Schema::hasColumn('departments', 'cdc_review_remarks')) {
+            $submissionData['cdc_review_remarks'] = null;
+        }
+
+        if (Schema::hasColumn('departments', 'cdc_reviewed_at')) {
+            $submissionData['cdc_reviewed_at'] = null;
+        }
+
+        if (Schema::hasColumn('departments', 'cdc_reviewed_by_user_id')) {
+            $submissionData['cdc_reviewed_by_user_id'] = null;
         }
 
         if ($submissionData !== []) {

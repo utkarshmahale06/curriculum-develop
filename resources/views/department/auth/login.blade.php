@@ -32,9 +32,9 @@
             <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">Department Login</button>
         </form>
 
-        <div style="margin-top: 18px; text-align: center;">
-            <a href="{{ route('department.register') }}" class="btn btn-secondary">Create Department Account</a>
-        </div>
+        <p style="margin-top: 18px; text-align: center; color: #6b7280; font-size: 14px;">
+            Need an account? Ask CDC to create your department login.
+        </p>
     </div>
 </div>
 @endsection

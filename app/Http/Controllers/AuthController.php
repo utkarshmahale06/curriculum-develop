@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,14 +25,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Show the department registration form.
-     */
-    public function showDepartmentRegisterForm()
-    {
-        return view('department.auth.register');
-    }
-
-    /**
      * Show the HOD login form.
      */
     public function showHodLoginForm()
@@ -42,13 +33,12 @@ class AuthController extends Controller
     }
 
     /**
-     * Show the HOD registration form.
+     * Redirect legacy HOD signup requests to CDC-managed flow.
      */
     public function showHodRegisterForm()
     {
-        $departments = Department::orderBy('name')->get();
-
-        return view('hod.auth.register', compact('departments'));
+        return redirect()->route('hod.login')
+            ->with('warning', 'HOD accounts are now created by CDC. Please contact CDC for account setup.');
     }
 
     /**
@@ -60,13 +50,12 @@ class AuthController extends Controller
     }
 
     /**
-     * Show the faculty registration form.
+     * Redirect legacy faculty signup requests to CDC-managed flow.
      */
     public function showFacultyRegisterForm()
     {
-        $departments = Department::orderBy('name')->get();
-
-        return view('faculty.auth.register', compact('departments'));
+        return redirect()->route('faculty.login')
+            ->with('warning', 'Faculty accounts are now created by CDC. Please contact CDC for account setup.');
     }
 
     /**
@@ -136,31 +125,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Create a department account on first login.
-     */
-    public function departmentRegister(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'role' => 'department',
-        ]);
-
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('department.dashboard')
-            ->with('success', 'Department account created successfully.');
-    }
-
-    /**
      * Handle a HOD login request.
      */
     public function hodLogin(Request $request)
@@ -187,33 +151,6 @@ class AuthController extends Controller
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
-    }
-
-    /**
-     * Create a HOD account.
-     */
-    public function hodRegister(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'department_id' => ['required', 'exists:departments,id'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'role' => 'hod',
-            'department_id' => $validated['department_id'],
-        ]);
-
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('hod.dashboard')
-            ->with('success', 'HOD account created successfully.');
     }
 
     /**
@@ -245,32 +182,6 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
-    /**
-     * Create a faculty account.
-     */
-    public function facultyRegister(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'department_id' => ['required', 'exists:departments,id'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'role' => 'faculty',
-            'department_id' => $validated['department_id'],
-        ]);
-
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('faculty.dashboard')
-            ->with('success', 'Faculty account created successfully.');
-    }
 
     /**
      * Log the user out.

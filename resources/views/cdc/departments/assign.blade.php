@@ -6,8 +6,8 @@
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 12px;">
         <div>
-            <h2 style="margin-bottom: 6px;">Assign Scheme</h2>
-            <p style="color: #6b7280;">Assign <strong>{{ $department->name }}</strong> to a department user account.</p>
+            <h2 style="margin-bottom: 6px;">Assign Programme Owner</h2>
+            <p style="color: #6b7280;">Assign <strong>{{ $department->name }}</strong> to the department account that will design its courses.</p>
         </div>
         <a href="{{ route('cdc.departments.index') }}" class="btn btn-secondary">Back to Programmes</a>
     </div>
@@ -53,7 +53,7 @@
             @enderror
 
             <div style="display: flex; gap: 10px; margin-top: 24px;">
-                <button type="submit" class="btn btn-success">Assign Scheme</button>
+                <button type="submit" class="btn btn-success">Save Assignment</button>
                 <a href="{{ route('cdc.departments.index') }}" class="btn btn-secondary">Cancel</a>
             </div>
         </form>

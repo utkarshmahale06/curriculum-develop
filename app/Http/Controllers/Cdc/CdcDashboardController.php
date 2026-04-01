@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Cdc;
 
 use App\Http\Controllers\Controller;
+use App\Models\Department;
+use App\Models\User;
 
 class CdcDashboardController extends Controller
 {
@@ -11,6 +13,18 @@ class CdcDashboardController extends Controller
      */
     public function index()
     {
-        return view('cdc.dashboard');
+        $programmes = Department::with(['courses', 'assignedUser'])->get();
+
+        return view('cdc.dashboard', [
+            'programmeCount' => $programmes->count(),
+            'pendingAssignmentCount' => $programmes->whereNull('assigned_user_id')->count(),
+            'pendingReviewCount' => $programmes->where('cdc_review_status', 'submitted')->count(),
+            'approvedPendingCodesCount' => $programmes->where('cdc_review_status', 'approved')->count(),
+            'accountCounts' => [
+                'department' => User::where('role', 'department')->count(),
+                'hod' => User::where('role', 'hod')->count(),
+                'faculty' => User::where('role', 'faculty')->count(),
+            ],
+        ]);
     }
 }

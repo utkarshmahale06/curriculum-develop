@@ -15,9 +15,24 @@ class CdcDepartmentController extends Controller
      */
     public function index()
     {
-        $departments = Department::with(['courseBaskets', 'assignedUser', 'courses'])->orderBy('id', 'asc')->get();
+        $status = request()->string('status')->toString();
 
-        return view('cdc.departments.index', compact('departments'));
+        $departments = Department::with(['courseBaskets', 'assignedUser', 'courses'])
+            ->when($status !== '', function ($query) use ($status) {
+                match ($status) {
+                    'not_started' => $query->doesntHave('courses'),
+                    'draft' => $query->where('cdc_review_status', 'draft')->has('courses'),
+                    'submitted' => $query->where('cdc_review_status', 'submitted'),
+                    'revision_requested' => $query->where('cdc_review_status', 'revision_requested'),
+                    'approved' => $query->where('cdc_review_status', 'approved'),
+                    'codes_assigned' => $query->where('cdc_review_status', 'codes_assigned'),
+                    default => null,
+                };
+            })
+            ->orderBy('id', 'asc')
+            ->get();
+
+        return view('cdc.departments.index', compact('departments', 'status'));
     }
 
     /**

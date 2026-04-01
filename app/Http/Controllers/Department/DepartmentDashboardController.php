@@ -18,6 +18,16 @@ class DepartmentDashboardController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('department.dashboard', compact('assignedDepartments'));
+        return view('department.dashboard', [
+            'assignedDepartments' => $assignedDepartments,
+            'summary' => [
+                'total' => $assignedDepartments->count(),
+                'draft' => $assignedDepartments->where('cdc_review_status', 'draft')->count(),
+                'submitted' => $assignedDepartments->where('cdc_review_status', 'submitted')->count(),
+                'revision_requested' => $assignedDepartments->where('cdc_review_status', 'revision_requested')->count(),
+                'approved' => $assignedDepartments->where('cdc_review_status', 'approved')->count(),
+                'codes_assigned' => $assignedDepartments->where('cdc_review_status', 'codes_assigned')->count(),
+            ],
+        ]);
     }
 }

@@ -157,7 +157,8 @@
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
-        .form-group input {
+        .form-group input,
+        .form-group textarea {
             width: 100%;
             padding: 10px 14px;
             border: 1px solid #d1d5db;
@@ -167,7 +168,8 @@
             background: #ffffff;
             transition: all 0.15s ease;
         }
-        .form-group input:focus {
+        .form-group input:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: #2563eb;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -187,7 +189,8 @@
             border-color: #2563eb;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
-        .form-group input::placeholder {
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
             color: #9ca3af;
         }
         .form-error {
