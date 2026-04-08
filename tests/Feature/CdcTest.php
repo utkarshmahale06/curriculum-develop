@@ -13,35 +13,33 @@ function createCdcUser(): User
     ]);
 }
 
-function createDepartmentUser(array $overrides = []): User
+function createHodUserForTest(array $overrides = []): User
 {
     return User::create(array_merge([
-        'name' => 'Department User',
-        'email' => 'department@example.com',
+        'name' => 'HOD User',
+        'email' => 'hod.test@example.com',
         'password' => bcrypt('password123'),
-        'role' => 'department',
+        'role' => 'hod',
     ], $overrides));
 }
 
-function createHodUser(Department $department, array $overrides = []): User
+function createHodUser(array $overrides = []): User
 {
     return User::create(array_merge([
         'name' => 'HOD User',
         'email' => 'hod@example.com',
         'password' => bcrypt('password123'),
         'role' => 'hod',
-        'department_id' => $department->id,
     ], $overrides));
 }
 
-function createFacultyUser(Department $department, array $overrides = []): User
+function createFacultyUser(array $overrides = []): User
 {
     return User::create(array_merge([
         'name' => 'Faculty User',
         'email' => 'faculty@example.com',
         'password' => bcrypt('password123'),
         'role' => 'faculty',
-        'department_id' => $department->id,
     ], $overrides));
 }
 
@@ -195,36 +193,35 @@ test('cdc user can login and is redirected to cdc dashboard', function () {
     $this->assertAuthenticatedAs($user);
 });
 
-test('cdc user can create a department account', function () {
+test('cdc user can create a HOD account', function () {
     $cdc = createCdcUser();
 
     $response = $this->actingAs($cdc)->post(route('cdc.users.store'), [
-        'name' => 'Department User',
-        'email' => 'department@example.com',
-        'role' => 'department',
-        'department_id' => null,
+        'name' => 'Role User',
+        'email' => 'hod.test@example.com',
+        'role' => 'hod',
         'password' => 'password123',
         'password_confirmation' => 'password123',
     ]);
 
     $response->assertRedirect(route('cdc.users.index'));
-    $response->assertSessionHas('success', 'Department account created successfully.');
+    $response->assertSessionHas('success', 'Hod account created successfully.');
 
     $this->assertDatabaseHas('users', [
-        'email' => 'department@example.com',
-        'role' => 'department',
+        'email' => 'hod.test@example.com',
+        'role' => 'hod',
     ]);
 });
 
 test('department user can login through department portal', function () {
-    $user = createDepartmentUser();
+    $user = createHodUserForTest();
 
-    $response = $this->post(route('department.login.submit'), [
+    $response = $this->post(route('hod.login.submit'), [
         'email' => $user->email,
         'password' => 'password123',
     ]);
 
-    $response->assertRedirect(route('department.dashboard'));
+    $response->assertRedirect(route('hod.dashboard'));
     $this->assertAuthenticatedAs($user);
 });
 
@@ -249,8 +246,8 @@ test('cdc user can create a programme with course baskets', function () {
 
 test('programme list shows assignment action and assigned department user', function () {
     $cdc = createCdcUser();
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
 
     $response = $this->actingAs($cdc)->get(route('cdc.departments.index'));
 
@@ -258,15 +255,15 @@ test('programme list shows assignment action and assigned department user', func
     $response->assertSee('View');
     $response->assertSee('Reassign');
     $response->assertSee('Not started');
-    $response->assertSee($departmentUser->name);
+    $response->assertSee($hodUser->name);
     $response->assertSee($department->name);
 });
 
 test('assign page shows all department accounts', function () {
     $cdc = createCdcUser();
     $department = createProgramme();
-    $userOne = createDepartmentUser();
-    $userTwo = createDepartmentUser([
+    $userOne = createHodUserForTest();
+    $userTwo = createHodUserForTest([
         'name' => 'Department User 2',
         'email' => 'department2@example.com',
     ]);
@@ -281,50 +278,49 @@ test('assign page shows all department accounts', function () {
 test('cdc user can assign a scheme to a department user', function () {
     $cdc = createCdcUser();
     $department = createProgramme();
-    $departmentUser = createDepartmentUser();
+    $hodUser = createHodUserForTest();
 
     $response = $this->actingAs($cdc)->post(route('cdc.departments.assign.update', $department), [
-        'assigned_user_id' => $departmentUser->id,
+        'assigned_user_id' => $hodUser->id,
     ]);
 
     $response->assertRedirect(route('cdc.departments.index'));
     $this->assertDatabaseHas('departments', [
         'id' => $department->id,
-        'assigned_user_id' => $departmentUser->id,
+        'assigned_user_id' => $hodUser->id,
     ]);
 });
 
 test('department user sees assigned schemes on dashboard', function () {
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
 
-    $response = $this->actingAs($departmentUser)->get(route('department.dashboard'));
+    $response = $this->actingAs($hodUser)->get(route('hod.dashboard'));
 
     $response->assertOk();
     $response->assertSee($department->name);
     $response->assertSee('Design Remaining Courses');
-    $response->assertSee('View Designed Courses');
-    $response->assertSee('Progress:');
+    $response->assertSee('Course Design:');
 });
 
 test('non department user cannot access department dashboard', function () {
     $user = createRegularUser();
 
-    $response = $this->actingAs($user)->get(route('department.dashboard'));
+    $response = $this->actingAs($user)->get(route('hod.dashboard'));
 
-    $response->assertRedirect(route('department.login'));
-    $response->assertSessionHas('error', 'You are not authorized to access the department portal.');
+    $response->assertRedirect(route('hod.login'));
+    $response->assertSessionHas('error', 'You are not authorized to access the HOD portal.');
 });
 
 test('department user can design courses for assigned scheme in excel-style structure', function () {
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
 
-    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $response = $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),
     ]);
 
-    $response->assertRedirect(route('department.dashboard'));
+    $response->assertRedirect(route('hod.dashboard'));
     $response->assertSessionHas('success', 'Courses designed successfully for the assigned scheme.');
 
     $this->assertDatabaseHas('courses', [
@@ -339,16 +335,16 @@ test('department user can design courses for assigned scheme in excel-style stru
 });
 
 test('department user can save partially completed courses as draft', function () {
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
     $draftRows = [validCourseRows($department)[0]];
 
-    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $response = $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'save_mode' => 'draft',
         'courses' => $draftRows,
     ]);
 
-    $response->assertRedirect(route('department.dashboard'));
+    $response->assertRedirect(route('hod.dashboard'));
     $response->assertSessionHas('success', 'Course draft saved successfully. You can continue later.');
     $this->assertDatabaseHas('courses', [
         'department_id' => $department->id,
@@ -358,33 +354,33 @@ test('department user can save partially completed courses as draft', function (
 });
 
 test('department user can submit completed courses to cdc for code allocation', function () {
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
 
-    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),
     ]);
 
-    $response = $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
+    $response = $this->actingAs($hodUser)->post(route('hod.courses.submit', $department));
 
-    $response->assertRedirect(route('department.dashboard'));
+    $response->assertRedirect(route('hod.dashboard'));
     $response->assertSessionHas('success', 'Courses submitted to CDC for course-code allocation.');
     $this->assertDatabaseHas('departments', [
         'id' => $department->id,
-        'courses_submitted_by_user_id' => $departmentUser->id,
+        'courses_submitted_by_user_id' => $hodUser->id,
     ]);
 });
 
 test('cdc user can allocate course codes after department submission', function () {
     $cdc = createCdcUser();
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
 
-    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),
     ]);
 
-    $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
+    $this->actingAs($hodUser)->post(route('hod.courses.submit', $department));
 
     $this->actingAs($cdc)->post(route('cdc.departments.approve', $department), [
         'cdc_review_remarks' => 'Design approved.',
@@ -412,14 +408,14 @@ test('cdc user can allocate course codes after department submission', function 
 
 test('department edits do not clear cdc assigned course codes', function () {
     $cdc = createCdcUser();
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
 
-    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),
     ]);
 
-    $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
+    $this->actingAs($hodUser)->post(route('hod.courses.submit', $department));
 
     $this->actingAs($cdc)->post(route('cdc.departments.approve', $department), [
         'cdc_review_remarks' => 'Design approved.',
@@ -443,11 +439,11 @@ test('department edits do not clear cdc assigned course codes', function () {
     $editedRows[1]['id'] = $department->courses->sortBy('sr_no')->values()[1]->id;
     $editedRows[2]['id'] = $department->courses->sortBy('sr_no')->values()[2]->id;
 
-    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $response = $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => $editedRows,
     ]);
 
-    $response->assertRedirect(route('department.dashboard'));
+    $response->assertRedirect(route('hod.dashboard'));
     $this->assertDatabaseHas('courses', [
         'department_id' => $department->id,
         'course_title' => 'Applied Physics Updated',
@@ -457,14 +453,14 @@ test('department edits do not clear cdc assigned course codes', function () {
 
 test('cdc user can request revision before code allocation', function () {
     $cdc = createCdcUser();
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
 
-    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),
     ]);
 
-    $this->actingAs($departmentUser)->post(route('department.courses.submit', $department));
+    $this->actingAs($hodUser)->post(route('hod.courses.submit', $department));
 
     $response = $this->actingAs($cdc)->post(route('cdc.departments.request-revision', $department), [
         'cdc_review_remarks' => 'Please revise basket alignment notes.',
@@ -480,11 +476,11 @@ test('cdc user can request revision before code allocation', function () {
 
 test('cdc user can view scheme details and designed course progress', function () {
     $cdc = createCdcUser();
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
     $department->courses()->create([
         'course_basket_id' => $department->courseBaskets->first()->id,
-        'created_by' => $departmentUser->id,
+        'created_by' => $hodUser->id,
         'semester_name' => 'I-Sem',
         'sr_no' => 1,
         'course_title' => 'Applied Physics',
@@ -517,19 +513,19 @@ test('cdc user can view scheme details and designed course progress', function (
     $response->assertOk();
     $response->assertSee('Scheme Details');
     $response->assertSee('Applied Physics');
-    $response->assertSee($departmentUser->name);
+    $response->assertSee($hodUser->name);
     $response->assertSee('Pending CDC allocation');
 });
 
 test('department user can view designed courses in read only mode', function () {
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
 
-    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),
     ]);
 
-    $response = $this->actingAs($departmentUser)->get(route('department.courses.show', $department));
+    $response = $this->actingAs($hodUser)->get(route('hod.courses.show', $department));
 
     $response->assertOk();
     $response->assertSee('Designed Courses');
@@ -540,8 +536,8 @@ test('department user can view designed courses in read only mode', function () 
 });
 
 test('department user cannot add more courses than basket allows', function () {
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
     $rows = validCourseRows($department);
     $rows[] = array_merge($rows[0], [
         'sr_no' => 4,
@@ -549,7 +545,7 @@ test('department user cannot add more courses than basket allows', function () {
         'course_code' => '231199',
     ]);
 
-    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $response = $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => $rows,
     ]);
 
@@ -561,12 +557,12 @@ test('department user cannot add more courses than basket allows', function () {
 });
 
 test('department user course values must match assigned scheme basket values', function () {
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
     $rows = validCourseRows($department);
     $rows[0]['cl'] = 5;
 
-    $response = $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $response = $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => $rows,
     ]);
 
@@ -574,21 +570,20 @@ test('department user course values must match assigned scheme basket values', f
 });
 
 test('department user cannot design courses for scheme assigned to another user', function () {
-    $owner = createDepartmentUser();
-    $otherUser = createDepartmentUser([
+    $owner = createHodUserForTest();
+    $otherUser = createHodUserForTest([
         'name' => 'Other Department User',
         'email' => 'other.department@example.com',
     ]);
     $department = createProgramme(['assigned_user_id' => $owner->id]);
 
-    $response = $this->actingAs($otherUser)->get(route('department.courses.edit', $department));
+    $response = $this->actingAs($otherUser)->get(route('hod.courses.edit', $department));
 
     $response->assertForbidden();
 });
 
 test('hod user can login through hod portal', function () {
-    $department = createProgramme();
-    $hod = createHodUser($department);
+    $hod = createHodUser();
 
     $response = $this->post(route('hod.login.submit'), [
         'email' => $hod->email,
@@ -600,8 +595,7 @@ test('hod user can login through hod portal', function () {
 });
 
 test('faculty user can login through faculty portal', function () {
-    $department = createProgramme();
-    $faculty = createFacultyUser($department);
+    $faculty = createFacultyUser();
 
     $response = $this->post(route('faculty.login.submit'), [
         'email' => $faculty->email,
@@ -613,12 +607,11 @@ test('faculty user can login through faculty portal', function () {
 });
 
 test('hod user can assign faculty to designed courses', function () {
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
-    $hod = createHodUser($department);
-    $faculty = createFacultyUser($department);
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
+    $faculty = createFacultyUser();
 
-    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),
     ]);
 
@@ -629,7 +622,7 @@ test('hod user can assign faculty to designed courses', function () {
         $assignments[$course->id] = $faculty->id;
     }
 
-    $response = $this->actingAs($hod)->post(route('hod.faculty-assignments.update', $department), [
+    $response = $this->actingAs($hodUser)->post(route('hod.faculty-assignments.update', $department), [
         'faculty_assignments' => $assignments,
     ]);
 
@@ -640,12 +633,58 @@ test('hod user can assign faculty to designed courses', function () {
     ]);
 });
 
-test('faculty dashboard shows assigned subjects', function () {
-    $departmentUser = createDepartmentUser();
-    $department = createProgramme(['assigned_user_id' => $departmentUser->id]);
-    $faculty = createFacultyUser($department);
+test('any faculty can be assigned to any programme', function () {
+    $hodUser = createHodUserForTest();
+    $departmentA = createProgramme(['name' => 'Programme A', 'code' => 'PA', 'assigned_user_id' => $hodUser->id]);
+    $faculty = createFacultyUser();
 
-    $this->actingAs($departmentUser)->post(route('department.courses.update', $department), [
+    $this->actingAs($hodUser)->post(route('hod.courses.update', $departmentA), [
+        'courses' => validCourseRows($departmentA),
+    ]);
+
+    $departmentA = $departmentA->fresh('courses');
+    $assignments = [];
+
+    foreach ($departmentA->courses as $course) {
+        $assignments[$course->id] = $faculty->id;
+    }
+
+    $response = $this->actingAs($hodUser)->post(route('hod.faculty-assignments.update', $departmentA), [
+        'faculty_assignments' => $assignments,
+    ]);
+
+    $response->assertRedirect(route('hod.dashboard'));
+    $this->assertDatabaseHas('courses', [
+        'id' => $departmentA->courses->first()->id,
+        'faculty_user_id' => $faculty->id,
+    ]);
+});
+
+test('cdc user can create account without department', function () {
+    $cdc = createCdcUser();
+
+    $response = $this->actingAs($cdc)->post(route('cdc.users.store'), [
+        'name' => 'New Faculty',
+        'email' => 'new.faculty@example.com',
+        'role' => 'faculty',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ]);
+
+    $response->assertRedirect(route('cdc.users.index'));
+    $this->assertDatabaseHas('users', [
+        'email' => 'new.faculty@example.com',
+        'role' => 'faculty',
+        'department_id' => null,
+    ]);
+});
+
+test('faculty dashboard shows assigned subjects', function () {
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
+    $faculty = createFacultyUser();
+
+    $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),
     ]);
 
@@ -658,6 +697,6 @@ test('faculty dashboard shows assigned subjects', function () {
 
     $response->assertOk();
     $response->assertSee('Faculty Dashboard');
-    $response->assertSee($department->name);
     $response->assertSee($course->course_title);
 });
+

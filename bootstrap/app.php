@@ -17,10 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
         RedirectIfAuthenticated::redirectUsing(function ($request) {
             $user = $request->user();
 
-            if ($user instanceof User && $user->isDepartment()) {
-                return route('department.dashboard');
-            }
-
             if ($user instanceof User && $user->isHod()) {
                 return route('hod.dashboard');
             }
@@ -37,10 +33,6 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         Authenticate::redirectUsing(function ($request) {
-            if ($request->is('department') || $request->is('department/*')) {
-                return route('department.login');
-            }
-
             if ($request->is('hod') || $request->is('hod/*')) {
                 return route('hod.login');
             }
@@ -54,7 +46,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'cdc' => \App\Http\Middleware\CdcMiddleware::class,
-            'department' => \App\Http\Middleware\DepartmentMiddleware::class,
             'hod' => \App\Http\Middleware\HodMiddleware::class,
             'faculty' => \App\Http\Middleware\FacultyMiddleware::class,
         ]);

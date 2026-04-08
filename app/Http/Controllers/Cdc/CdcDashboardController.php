@@ -21,7 +21,6 @@ class CdcDashboardController extends Controller
             'pendingReviewCount' => $programmes->where('cdc_review_status', 'submitted')->count(),
             'approvedPendingCodesCount' => $programmes->where('cdc_review_status', 'approved')->count(),
             'accountCounts' => [
-                'department' => User::where('role', 'department')->count(),
                 'hod' => User::where('role', 'hod')->count(),
                 'faculty' => User::where('role', 'faculty')->count(),
             ],

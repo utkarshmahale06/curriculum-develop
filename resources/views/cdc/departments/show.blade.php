@@ -39,7 +39,7 @@
             <div style="font-size: 20px; font-weight: 600;">{{ $department->year }}</div>
         </div>
         <div class="card" style="padding: 16px;">
-            <div style="font-size: 13px; color: #6b7280;">Department Owner</div>
+            <div style="font-size: 13px; color: #6b7280;">HOD Owner</div>
             <div style="font-size: 20px; font-weight: 600;">{{ $department->assignedUser?->name ?? 'Not assigned' }}</div>
         </div>
         <div class="card" style="padding: 16px;">
@@ -50,15 +50,15 @@
 
     <div class="alert {{ $areCourseCodesAssigned ? 'alert-success' : ($department->cdc_review_status === 'revision_requested' ? 'alert-error' : 'alert-warning') }}">
         @if($areCourseCodesAssigned)
-            Department submitted the course design on {{ $department->courses_submitted_to_cdc_at?->format('d M Y, h:i A') }}, CDC approved it, and course codes were allocated on {{ $department->course_codes_assigned_at?->format('d M Y, h:i A') }}.
+            HOD submitted the course design on {{ $department->courses_submitted_to_cdc_at?->format('d M Y, h:i A') }}, CDC approved it, and course codes were allocated on {{ $department->course_codes_assigned_at?->format('d M Y, h:i A') }}.
         @elseif($department->cdc_review_status === 'revision_requested')
             CDC sent this programme back for revision{{ $department->cdc_review_remarks ? ': ' . $department->cdc_review_remarks : '.' }}
         @elseif($department->cdc_review_status === 'approved')
             CDC approved the submitted design{{ $department->cdc_review_remarks ? ' with note: ' . $department->cdc_review_remarks : '' }}. Course codes can now be allocated.
         @elseif($isSubmittedToCdc)
-            Department submitted the course design on {{ $department->courses_submitted_to_cdc_at?->format('d M Y, h:i A') }}. Review and approve it before allocating course codes.
+            HOD submitted the course design on {{ $department->courses_submitted_to_cdc_at?->format('d M Y, h:i A') }}. Review and approve it before allocating course codes.
         @else
-            The department has not submitted the designed courses to CDC yet.
+            The HOD has not submitted the designed courses to CDC yet.
         @endif
     </div>
 
@@ -70,7 +70,7 @@
                     @csrf
                     <div class="form-group">
                         <label for="approve_remarks">Approval Note</label>
-                        <textarea id="approve_remarks" name="cdc_review_remarks" rows="4" placeholder="Optional note for department">{{ old('cdc_review_remarks', $department->cdc_review_status === 'approved' ? $department->cdc_review_remarks : '') }}</textarea>
+                        <textarea id="approve_remarks" name="cdc_review_remarks" rows="4" placeholder="Optional note for HOD">{{ old('cdc_review_remarks', $department->cdc_review_status === 'approved' ? $department->cdc_review_remarks : '') }}</textarea>
                     </div>
                     <button type="submit" class="btn btn-success">Approve Design</button>
                 </form>

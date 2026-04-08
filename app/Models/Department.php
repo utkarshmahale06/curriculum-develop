@@ -40,7 +40,7 @@ class Department extends Model
     }
 
     /**
-     * Get the department user assigned to this scheme.
+     * Get the HOD user assigned to this scheme.
      */
     public function assignedUser(): BelongsTo
     {
@@ -64,7 +64,7 @@ class Department extends Model
     }
 
     /**
-     * Get the department user who submitted the courses to CDC.
+     * Get the HOD user who submitted the courses to CDC.
      */
     public function courseSubmittedBy(): BelongsTo
     {

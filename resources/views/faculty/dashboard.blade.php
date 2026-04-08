@@ -11,18 +11,16 @@
         </div>
     </div>
 
-    @if(! $department)
-        <div class="alert alert-warning">
-            No programme/department is linked to this faculty account yet.
-        </div>
-    @elseif($assignedCourses->isEmpty())
+    @if($assignedCourses->isEmpty())
         <div class="alert alert-warning">
             No subjects are assigned to your account yet.
         </div>
     @else
-        <div class="alert alert-success">
-            Department: <strong>{{ $department->name }}</strong> ({{ $department->code }}) | Year: {{ $department->year }}
-        </div>
+        @if($department)
+            <div class="alert alert-success">
+                Programme: <strong>{{ $department->name }}</strong> ({{ $department->code }}) | Year: {{ $department->year }}
+            </div>
+        @endif
 
         <table>
             <thead>

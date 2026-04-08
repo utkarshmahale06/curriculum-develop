@@ -17,14 +17,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Show the department login form.
-     */
-    public function showDepartmentLoginForm()
-    {
-        return view('department.auth.login');
-    }
-
-    /**
      * Show the HOD login form.
      */
     public function showHodLoginForm()
@@ -75,10 +67,6 @@ class AuthController extends Controller
                 return redirect()->intended(route('cdc.dashboard'));
             }
 
-            if (Auth::user()->isDepartment()) {
-                return redirect()->intended(route('department.dashboard'));
-            }
-
             if (Auth::user()->isHod()) {
                 return redirect()->intended(route('hod.dashboard'));
             }
@@ -88,35 +76,6 @@ class AuthController extends Controller
             }
 
             return redirect('/');
-        }
-
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
-    }
-
-    /**
-     * Handle a department login request.
-     */
-    public function departmentLogin(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
-
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-
-            if (Auth::user()->isDepartment()) {
-                return redirect()->intended(route('department.dashboard'));
-            }
-
-            Auth::logout();
-
-            return back()->withErrors([
-                'email' => 'This login is only for department users.',
-            ])->onlyInput('email');
         }
 
         return back()->withErrors([

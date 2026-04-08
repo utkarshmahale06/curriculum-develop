@@ -36,13 +36,6 @@ class User extends Authenticatable
         return $this->role === 'cdc';
     }
 
-    /**
-     * Check if the user has the department role.
-     */
-    public function isDepartment(): bool
-    {
-        return $this->role === 'department';
-    }
 
     /**
      * Check if the user has the HOD role.
@@ -61,7 +54,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the schemes assigned to the department user.
+     * Get the schemes assigned to this HOD user by CDC.
      */
     public function assignedDepartments(): HasMany
     {
@@ -69,15 +62,15 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the programme/department context linked to this user.
+     * Get the department this user belongs to.
      */
-    public function linkedDepartment(): BelongsTo
+    public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id');
     }
 
     /**
-     * Get the courses designed by the department user.
+     * Get the courses designed by this HOD user.
      */
     public function designedCourses(): HasMany
     {

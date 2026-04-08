@@ -5,18 +5,13 @@ use App\Http\Controllers\Cdc\CdcDashboardController;
 use App\Http\Controllers\Cdc\CdcDepartmentController;
 use App\Http\Controllers\Cdc\CdcSchemeAssignmentController;
 use App\Http\Controllers\Cdc\CdcUserManagementController;
-use App\Http\Controllers\Department\DepartmentCourseController;
-use App\Http\Controllers\Department\DepartmentDashboardController;
 use App\Http\Controllers\Faculty\FacultyDashboardController;
 use App\Http\Controllers\Hod\HodCourseAssignmentController;
+use App\Http\Controllers\Hod\HodCourseDesignController;
 use App\Http\Controllers\Hod\HodDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    if (auth()->check() && auth()->user()->isDepartment()) {
-        return redirect()->route('department.dashboard');
-    }
-
     if (auth()->check() && auth()->user()->isCdc()) {
         return redirect()->route('cdc.dashboard');
     }
@@ -36,8 +31,6 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/department/login', [AuthController::class, 'showDepartmentLoginForm'])->name('department.login');
-    Route::post('/department/login', [AuthController::class, 'departmentLogin'])->name('department.login.submit');
     Route::get('/hod/login', [AuthController::class, 'showHodLoginForm'])->name('hod.login');
     Route::post('/hod/login', [AuthController::class, 'hodLogin'])->name('hod.login.submit');
     Route::get('/hod/register', [AuthController::class, 'showHodRegisterForm'])->name('hod.register');
@@ -66,16 +59,13 @@ Route::prefix('cdc')->middleware(['auth', 'cdc'])->group(function () {
     Route::post('/departments/{department}/course-codes', [CdcSchemeAssignmentController::class, 'updateCourseCodes'])->name('cdc.departments.course-codes.update');
 });
 
-Route::prefix('department')->middleware(['auth', 'department'])->group(function () {
-    Route::get('/dashboard', [DepartmentDashboardController::class, 'index'])->name('department.dashboard');
-    Route::get('/schemes/{department}/courses/view', [DepartmentCourseController::class, 'show'])->name('department.courses.show');
-    Route::get('/schemes/{department}/courses', [DepartmentCourseController::class, 'edit'])->name('department.courses.edit');
-    Route::post('/schemes/{department}/courses', [DepartmentCourseController::class, 'update'])->name('department.courses.update');
-    Route::post('/schemes/{department}/courses/submit', [DepartmentCourseController::class, 'submitToCdc'])->name('department.courses.submit');
-});
-
+// HOD routes (includes course design + faculty assignments)
 Route::prefix('hod')->middleware(['auth', 'hod'])->group(function () {
     Route::get('/dashboard', [HodDashboardController::class, 'index'])->name('hod.dashboard');
+    Route::get('/schemes/{department}/courses/view', [HodCourseDesignController::class, 'show'])->name('hod.courses.show');
+    Route::get('/schemes/{department}/courses', [HodCourseDesignController::class, 'edit'])->name('hod.courses.edit');
+    Route::post('/schemes/{department}/courses', [HodCourseDesignController::class, 'update'])->name('hod.courses.update');
+    Route::post('/schemes/{department}/courses/submit', [HodCourseDesignController::class, 'submitToCdc'])->name('hod.courses.submit');
     Route::get('/departments/{department}/faculty-assignments', [HodCourseAssignmentController::class, 'edit'])->name('hod.faculty-assignments.edit');
     Route::post('/departments/{department}/faculty-assignments', [HodCourseAssignmentController::class, 'update'])->name('hod.faculty-assignments.update');
 });

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Department;
+namespace App\Http\Controllers\Hod;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Validator;
 
-class DepartmentCourseController extends Controller
+class HodCourseDesignController extends Controller
 {
     /**
      * Show the designed courses in read-only mode.
@@ -23,7 +23,7 @@ class DepartmentCourseController extends Controller
 
         $department->load(['courseBaskets', 'courses.courseBasket']);
 
-        return view('department.courses.show', [
+        return view('hod.courses.show', [
             'department' => $department,
             'coursesBySemester' => $department->courses
                 ->sortBy(['semester_name', 'sr_no'])
@@ -40,7 +40,7 @@ class DepartmentCourseController extends Controller
 
         $department->load(['courseBaskets', 'courses.courseBasket']);
 
-        return view('department.courses.edit', [
+        return view('hod.courses.edit', [
             'department' => $department,
             'basketOptions' => $department->courseBaskets()->orderBy('id')->get(),
         ]);
@@ -284,7 +284,7 @@ class DepartmentCourseController extends Controller
             }
         });
 
-        return redirect()->route('department.dashboard')
+        return redirect()->route('hod.dashboard')
             ->with('success', $saveMode === 'draft'
                 ? 'Course draft saved successfully. You can continue later.'
                 : 'Courses designed successfully for the assigned scheme.');
@@ -301,7 +301,7 @@ class DepartmentCourseController extends Controller
         $errors = $this->submissionValidationErrors($department);
 
         if ($errors !== []) {
-            return redirect()->route('department.dashboard')
+            return redirect()->route('hod.dashboard')
                 ->with('error', $errors[0]);
         }
 
@@ -354,12 +354,12 @@ class DepartmentCourseController extends Controller
             }
         }
 
-        return redirect()->route('department.dashboard')
+        return redirect()->route('hod.dashboard')
             ->with('success', 'Courses submitted to CDC for course-code allocation.');
     }
 
     /**
-     * Ensure the scheme belongs to the logged-in department user.
+     * Ensure the scheme belongs to the logged-in HOD user.
      */
     protected function ensureAssignedDepartment(Department $department): void
     {

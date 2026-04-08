@@ -28,7 +28,6 @@
 
     <div class="alert alert-warning" style="margin-bottom: 24px;">
         Accounts managed by CDC:
-        Department {{ $accountCounts['department'] }},
         HOD {{ $accountCounts['hod'] }},
         Faculty {{ $accountCounts['faculty'] }}.
     </div>
@@ -37,7 +36,6 @@
         <a href="{{ route('cdc.departments.create') }}" class="btn btn-primary">Create Programme</a>
         <a href="{{ route('cdc.departments.index') }}" class="btn btn-success">View Programmes</a>
         <a href="{{ route('cdc.users.index') }}" class="btn btn-secondary">Manage Accounts</a>
-        <a href="{{ route('department.login') }}" class="btn btn-secondary">Department Portal</a>
     </div>
 </div>
 @endsection

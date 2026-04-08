@@ -12,11 +12,25 @@ class HodDashboardController extends Controller
      */
     public function index()
     {
-        $department = Auth::user()
-            ->linkedDepartment()
-            ->with(['courseBaskets', 'courses.courseBasket', 'courses.assignedFaculty'])
-            ->first();
+        $user = Auth::user();
 
-        return view('hod.dashboard', compact('department'));
+        // All assigned schemes — HOD designs courses and assigns faculty for these
+        $assignedDepartments = $user
+            ->assignedDepartments()
+            ->with(['courseBaskets', 'courses.courseBasket', 'courses.assignedFaculty', 'facultyUsers'])
+            ->orderBy('name')
+            ->get();
+
+        return view('hod.dashboard', [
+            'assignedDepartments' => $assignedDepartments,
+            'summary' => [
+                'total' => $assignedDepartments->count(),
+                'draft' => $assignedDepartments->where('cdc_review_status', 'draft')->count(),
+                'submitted' => $assignedDepartments->where('cdc_review_status', 'submitted')->count(),
+                'revision_requested' => $assignedDepartments->where('cdc_review_status', 'revision_requested')->count(),
+                'approved' => $assignedDepartments->where('cdc_review_status', 'approved')->count(),
+                'codes_assigned' => $assignedDepartments->where('cdc_review_status', 'codes_assigned')->count(),
+            ],
+        ]);
     }
 }

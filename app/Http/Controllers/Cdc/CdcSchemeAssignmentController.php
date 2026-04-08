@@ -27,13 +27,13 @@ class CdcSchemeAssignmentController extends Controller
      */
     public function edit(Department $department)
     {
-        $departmentUsers = User::query()
-            ->where('role', 'department')
+        $hodUsers = User::query()
+            ->where('role', 'hod')
             ->withCount('assignedDepartments')
             ->orderBy('name')
             ->get();
 
-        return view('cdc.departments.assign', compact('department', 'departmentUsers'));
+        return view('cdc.departments.assign', compact('department', 'hodUsers'));
     }
 
     /**
@@ -101,12 +101,12 @@ class CdcSchemeAssignmentController extends Controller
 
         $user = User::query()
             ->whereKey($validated['assigned_user_id'])
-            ->where('role', 'department')
+            ->where('role', 'hod')
             ->first();
 
         if (! $user) {
             return back()->withErrors([
-                'assigned_user_id' => 'Please select a valid department user.',
+                'assigned_user_id' => 'Please select a valid HOD user.',
             ]);
         }
 

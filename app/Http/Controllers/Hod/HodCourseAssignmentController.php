@@ -22,7 +22,6 @@ class HodCourseAssignmentController extends Controller
 
         $facultyUsers = User::query()
             ->where('role', 'faculty')
-            ->where('department_id', $department->id)
             ->orderBy('name')
             ->get();
 
@@ -39,7 +38,6 @@ class HodCourseAssignmentController extends Controller
 
         $facultyIds = User::query()
             ->where('role', 'faculty')
-            ->where('department_id', $department->id)
             ->pluck('id')
             ->all();
 
@@ -79,10 +77,10 @@ class HodCourseAssignmentController extends Controller
     }
 
     /**
-     * Ensure the HOD manages the given department.
+     * Ensure the HOD is the assigned designer for the given department.
      */
     protected function ensureManagedDepartment(Department $department): void
     {
-        abort_unless((int) Auth::user()->department_id === (int) $department->id, 403);
+        abort_unless((int) $department->assigned_user_id === (int) Auth::id(), 403);
     }
 }

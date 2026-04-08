@@ -6,8 +6,7 @@
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
         <div>
-            <h2 style="margin-bottom: 6px;">Manage Accounts</h2>
-            <p style="color: #6b7280;">CDC creates and controls department, HOD, and faculty accounts.</p>
+            <p style="color: #6b7280;">CDC creates and controls HOD and faculty accounts.</p>
         </div>
         <div style="display: flex; gap: 10px;">
             <a href="{{ route('cdc.users.create') }}" class="btn btn-primary">Create Account</a>
@@ -20,7 +19,6 @@
             <label for="role">Filter By Role</label>
             <select id="role" name="role">
                 <option value="">All roles</option>
-                <option value="department" {{ $selectedRole === 'department' ? 'selected' : '' }}>Department</option>
                 <option value="hod" {{ $selectedRole === 'hod' ? 'selected' : '' }}>HOD</option>
                 <option value="faculty" {{ $selectedRole === 'faculty' ? 'selected' : '' }}>Faculty</option>
             </select>
@@ -37,7 +35,6 @@
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
-                    <th>Programme Link</th>
                     <th>Created At</th>
                 </tr>
             </thead>
@@ -47,7 +44,6 @@
                         <td>{{ $user->name }}</td>
                         <td>{{ $user->email }}</td>
                         <td>{{ ucfirst($user->role ?? 'Unassigned') }}</td>
-                        <td>{{ $user->linkedDepartment?->name ?? '-' }}</td>
                         <td>{{ $user->created_at->format('d M Y, h:i A') }}</td>
                     </tr>
                 @endforeach

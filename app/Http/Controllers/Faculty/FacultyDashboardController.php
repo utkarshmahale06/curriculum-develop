@@ -13,12 +13,14 @@ class FacultyDashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $department = $user->linkedDepartment()->first();
         $assignedCourses = $user->facultyCourses()
             ->with(['department', 'courseBasket'])
             ->orderBy('semester_name')
             ->orderBy('sr_no')
             ->get();
+
+        // Derive department context from assigned courses (no longer stored on user)
+        $department = $assignedCourses->first()?->department;
 
         return view('faculty.dashboard', compact('department', 'assignedCourses'));
     }
