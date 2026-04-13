@@ -6,7 +6,7 @@
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
         <div>
-            <p style="color: #6b7280;">CDC creates and controls HOD and faculty accounts.</p>
+            <p style="color: #6b7280;">CDC creates and controls HOD, moderator, and faculty accounts.</p>
         </div>
         <div style="display: flex; gap: 10px;">
             <a href="{{ route('cdc.users.create') }}" class="btn btn-primary">Create Account</a>
@@ -20,6 +20,7 @@
             <select id="role" name="role">
                 <option value="">All roles</option>
                 <option value="hod" {{ $selectedRole === 'hod' ? 'selected' : '' }}>HOD</option>
+                <option value="moderator" {{ $selectedRole === 'moderator' ? 'selected' : '' }}>Moderator</option>
                 <option value="faculty" {{ $selectedRole === 'faculty' ? 'selected' : '' }}>Faculty</option>
             </select>
         </div>
@@ -52,3 +53,5 @@
     @endif
 </div>
 @endsection
+
+

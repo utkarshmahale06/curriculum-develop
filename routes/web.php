@@ -9,6 +9,7 @@ use App\Http\Controllers\Faculty\FacultyDashboardController;
 use App\Http\Controllers\Hod\HodCourseAssignmentController;
 use App\Http\Controllers\Hod\HodCourseDesignController;
 use App\Http\Controllers\Hod\HodDashboardController;
+use App\Http\Controllers\Moderator\ModeratorDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -18,6 +19,10 @@ Route::get('/', function () {
 
     if (auth()->check() && auth()->user()->isHod()) {
         return redirect()->route('hod.dashboard');
+    }
+
+    if (auth()->check() && auth()->user()->isModerator()) {
+        return redirect()->route('moderator.dashboard');
     }
 
     if (auth()->check() && auth()->user()->isFaculty()) {
@@ -34,6 +39,9 @@ Route::middleware('guest')->group(function () {
     Route::get('/hod/login', [AuthController::class, 'showHodLoginForm'])->name('hod.login');
     Route::post('/hod/login', [AuthController::class, 'hodLogin'])->name('hod.login.submit');
     Route::get('/hod/register', [AuthController::class, 'showHodRegisterForm'])->name('hod.register');
+    Route::get('/moderator/login', [AuthController::class, 'showModeratorLoginForm'])->name('moderator.login');
+    Route::post('/moderator/login', [AuthController::class, 'moderatorLogin'])->name('moderator.login.submit');
+    Route::get('/moderator/register', [AuthController::class, 'showModeratorRegisterForm'])->name('moderator.register');
     Route::get('/faculty/login', [AuthController::class, 'showFacultyLoginForm'])->name('faculty.login');
     Route::post('/faculty/login', [AuthController::class, 'facultyLogin'])->name('faculty.login.submit');
     Route::get('/faculty/register', [AuthController::class, 'showFacultyRegisterForm'])->name('faculty.register');
@@ -72,4 +80,8 @@ Route::prefix('hod')->middleware(['auth', 'hod'])->group(function () {
 
 Route::prefix('faculty')->middleware(['auth', 'faculty'])->group(function () {
     Route::get('/dashboard', [FacultyDashboardController::class, 'index'])->name('faculty.dashboard');
+});
+
+Route::prefix('moderator')->middleware(['auth', 'moderator'])->group(function () {
+    Route::get('/dashboard', [ModeratorDashboardController::class, 'index'])->name('moderator.dashboard');
 });

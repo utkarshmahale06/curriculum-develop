@@ -43,6 +43,16 @@ function createFacultyUser(array $overrides = []): User
     ], $overrides));
 }
 
+function createModeratorUser(array $overrides = []): User
+{
+    return User::create(array_merge([
+        'name' => 'Moderator User',
+        'email' => 'moderator@example.com',
+        'password' => bcrypt('password123'),
+        'role' => 'moderator',
+    ], $overrides));
+}
+
 function createRegularUser(): User
 {
     return User::create([
@@ -210,6 +220,26 @@ test('cdc user can create a HOD account', function () {
     $this->assertDatabaseHas('users', [
         'email' => 'hod.test@example.com',
         'role' => 'hod',
+    ]);
+});
+
+test('cdc user can create a moderator account', function () {
+    $cdc = createCdcUser();
+
+    $response = $this->actingAs($cdc)->post(route('cdc.users.store'), [
+        'name' => 'Moderator User',
+        'email' => 'moderator@example.com',
+        'role' => 'moderator',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ]);
+
+    $response->assertRedirect(route('cdc.users.index'));
+    $response->assertSessionHas('success', 'Moderator account created successfully.');
+
+    $this->assertDatabaseHas('users', [
+        'email' => 'moderator@example.com',
+        'role' => 'moderator',
     ]);
 });
 
@@ -606,6 +636,18 @@ test('faculty user can login through faculty portal', function () {
     $this->assertAuthenticatedAs($faculty);
 });
 
+test('moderator user can login through moderator portal', function () {
+    $moderator = createModeratorUser();
+
+    $response = $this->post(route('moderator.login.submit'), [
+        'email' => $moderator->email,
+        'password' => 'password123',
+    ]);
+
+    $response->assertRedirect(route('moderator.dashboard'));
+    $this->assertAuthenticatedAs($moderator);
+});
+
 test('hod user can assign faculty to designed courses', function () {
     $hodUser = createHodUserForTest();
     $department = createProgramme(['assigned_user_id' => $hodUser->id]);
@@ -700,3 +742,26 @@ test('faculty dashboard shows assigned subjects', function () {
     $response->assertSee($course->course_title);
 });
 
+test('moderator dashboard shows faculty subject queue', function () {
+    $moderator = createModeratorUser();
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
+    $faculty = createFacultyUser();
+
+    $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
+        'courses' => validCourseRows($department),
+    ]);
+
+    $course = $department->fresh('courses')->courses->first();
+    $course->update([
+        'faculty_user_id' => $faculty->id,
+    ]);
+
+    $response = $this->actingAs($moderator)->get(route('moderator.dashboard'));
+
+    $response->assertOk();
+    $response->assertSee('Moderator Dashboard');
+    $response->assertSee('Faculty Subject Queue');
+    $response->assertSee($course->course_title);
+    $response->assertSee($faculty->name);
+});

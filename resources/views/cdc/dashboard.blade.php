@@ -29,6 +29,7 @@
     <div class="alert alert-warning" style="margin-bottom: 24px;">
         Accounts managed by CDC:
         HOD {{ $accountCounts['hod'] }},
+        Moderator {{ $accountCounts['moderator'] }},
         Faculty {{ $accountCounts['faculty'] }}.
     </div>
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hod;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 class HodDashboardController extends Controller
@@ -23,6 +24,8 @@ class HodDashboardController extends Controller
 
         return view('hod.dashboard', [
             'assignedDepartments' => $assignedDepartments,
+            'moderators' => User::where('role', 'moderator')->orderBy('name')->get(),
+            'facultyUsers' => User::where('role', 'faculty')->withCount('facultyCourses')->orderBy('name')->get(),
             'summary' => [
                 'total' => $assignedDepartments->count(),
                 'draft' => $assignedDepartments->where('cdc_review_status', 'draft')->count(),

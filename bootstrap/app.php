@@ -21,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('hod.dashboard');
             }
 
+            if ($user instanceof User && $user->isModerator()) {
+                return route('moderator.dashboard');
+            }
+
             if ($user instanceof User && $user->isFaculty()) {
                 return route('faculty.dashboard');
             }
@@ -37,6 +41,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('hod.login');
             }
 
+            if ($request->is('moderator') || $request->is('moderator/*')) {
+                return route('moderator.login');
+            }
+
             if ($request->is('faculty') || $request->is('faculty/*')) {
                 return route('faculty.login');
             }
@@ -47,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'cdc' => \App\Http\Middleware\CdcMiddleware::class,
             'hod' => \App\Http\Middleware\HodMiddleware::class,
+            'moderator' => \App\Http\Middleware\ModeratorMiddleware::class,
             'faculty' => \App\Http\Middleware\FacultyMiddleware::class,
         ]);
     })

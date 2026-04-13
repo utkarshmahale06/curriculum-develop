@@ -41,6 +41,7 @@
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">Account creation is managed by CDC. Existing users can use their role-specific portals below.</p>
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                 <a href="{{ route('hod.login') }}" class="btn btn-secondary">HOD Login</a>
+                <a href="{{ route('moderator.login') }}" class="btn btn-secondary">Moderator Login</a>
                 <a href="{{ route('faculty.login') }}" class="btn btn-secondary">Faculty Login</a>
             </div>
         </div>

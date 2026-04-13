@@ -42,6 +42,23 @@ class AuthController extends Controller
     }
 
     /**
+     * Show the moderator login form.
+     */
+    public function showModeratorLoginForm()
+    {
+        return view('moderator.auth.login');
+    }
+
+    /**
+     * Redirect legacy moderator signup requests to CDC-managed flow.
+     */
+    public function showModeratorRegisterForm()
+    {
+        return redirect()->route('moderator.login')
+            ->with('warning', 'Moderator accounts are created by CDC. Please contact CDC for account setup.');
+    }
+
+    /**
      * Redirect legacy faculty signup requests to CDC-managed flow.
      */
     public function showFacultyRegisterForm()
@@ -69,6 +86,10 @@ class AuthController extends Controller
 
             if (Auth::user()->isHod()) {
                 return redirect()->intended(route('hod.dashboard'));
+            }
+
+            if (Auth::user()->isModerator()) {
+                return redirect()->intended(route('moderator.dashboard'));
             }
 
             if (Auth::user()->isFaculty()) {
@@ -133,6 +154,35 @@ class AuthController extends Controller
 
             return back()->withErrors([
                 'email' => 'This login is only for faculty users.',
+            ])->onlyInput('email');
+        }
+
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
+    }
+
+    /**
+     * Handle a moderator login request.
+     */
+    public function moderatorLogin(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+
+            if (Auth::user()->isModerator()) {
+                return redirect()->intended(route('moderator.dashboard'));
+            }
+
+            Auth::logout();
+
+            return back()->withErrors([
+                'email' => 'This login is only for moderator users.',
             ])->onlyInput('email');
         }
 

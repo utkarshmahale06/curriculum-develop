@@ -7,7 +7,7 @@
     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px;">
         <div>
             <h2 style="margin-bottom: 6px;">Create Account</h2>
-            <p style="color: #6b7280;">Create HOD or faculty accounts. Department mapping happens automatically when a programme is assigned.</p>
+            <p style="color: #6b7280;">Create HOD, moderator, or faculty accounts for the CDC -> HOD -> Moderator -> Faculty flow.</p>
         </div>
         <a href="{{ route('cdc.users.index') }}" class="btn btn-secondary">Back to Accounts</a>
     </div>
@@ -39,6 +39,7 @@
                 <select id="role" name="role" required>
                     <option value="">Select role</option>
                     <option value="hod" {{ old('role') === 'hod' ? 'selected' : '' }}>HOD</option>
+                    <option value="moderator" {{ old('role') === 'moderator' ? 'selected' : '' }}>Moderator</option>
                     <option value="faculty" {{ old('role') === 'faculty' ? 'selected' : '' }}>Faculty</option>
                 </select>
             </div>
@@ -61,3 +62,5 @@
     </form>
 </div>
 @endsection
+
+

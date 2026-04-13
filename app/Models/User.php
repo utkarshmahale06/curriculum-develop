@@ -46,6 +46,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if the user has the moderator role.
+     */
+    public function isModerator(): bool
+    {
+        return $this->role === 'moderator';
+    }
+
+    /**
      * Check if the user has the faculty role.
      */
     public function isFaculty(): bool

@@ -119,5 +119,57 @@
             @endforeach
         </div>
     @endif
+
+    <h3 style="font-size: 18px; margin-bottom: 16px;">Moderator And Faculty Monitoring</h3>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px;">
+        <div class="card" style="padding: 18px;">
+            <h4 style="font-size: 16px; margin-bottom: 12px;">Moderators</h4>
+            @if($moderators->isEmpty())
+                <p style="color: #6b7280;">No moderator accounts have been created yet.</p>
+            @else
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($moderators as $moderator)
+                            <tr>
+                                <td>{{ $moderator->name }}</td>
+                                <td>{{ $moderator->email }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+        </div>
+
+        <div class="card" style="padding: 18px;">
+            <h4 style="font-size: 16px; margin-bottom: 12px;">Faculty Workload</h4>
+            @if($facultyUsers->isEmpty())
+                <p style="color: #6b7280;">No faculty accounts have been created yet.</p>
+            @else
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Faculty</th>
+                            <th>Assigned Subjects</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($facultyUsers as $faculty)
+                            <tr>
+                                <td>{{ $faculty->name }}</td>
+                                <td>{{ $faculty->faculty_courses_count }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+        </div>
+    </div>
 </div>
 @endsection
+
