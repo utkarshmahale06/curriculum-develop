@@ -6,8 +6,8 @@
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 22px;">
         <div>
-            <h2 style="margin-bottom: 6px;">Assign Faculty</h2>
-            <p style="color: #6b7280;">Select a faculty member for each course in <strong>{{ $department->name }}</strong> ({{ $department->code }}).</p>
+            <h2 style="margin-bottom: 6px;">Assign Faculty & Moderator</h2>
+            <p style="color: #6b7280;">Select a faculty member and moderator for each course in <strong>{{ $department->name }}</strong> ({{ $department->code }}).</p>
         </div>
         <a href="{{ route('hod.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
     </div>
@@ -47,6 +47,7 @@
                         <th>Basket</th>
                         <th>Credits</th>
                         <th>Assign Faculty</th>
+                        <th>Assign Moderator</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,6 +64,16 @@
                                     @foreach($facultyUsers as $faculty)
                                         <option value="{{ $faculty->id }}" {{ (int) old('faculty_assignments.' . $course->id, $course->faculty_user_id) === $faculty->id ? 'selected' : '' }}>
                                             {{ $faculty->name }} ({{ $faculty->email }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td style="min-width: 280px;">
+                                <select name="moderator_assignments[{{ $course->id }}]" style="width: 100%;">
+                                    <option value="">— Select Moderator —</option>
+                                    @foreach($moderatorUsers as $moderator)
+                                        <option value="{{ $moderator->id }}" {{ (int) old('moderator_assignments.' . $course->id, $course->moderator_user_id) === $moderator->id ? 'selected' : '' }}>
+                                            {{ $moderator->name }} ({{ $moderator->email }})
                                         </option>
                                     @endforeach
                                 </select>

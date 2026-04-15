@@ -45,6 +45,7 @@ class Course extends Model
         'marks',
         'total_marks',
         'faculty_user_id',
+        'moderator_user_id',
     ];
 
     /**
@@ -77,5 +78,13 @@ class Course extends Model
     public function assignedFaculty(): BelongsTo
     {
         return $this->belongsTo(User::class, 'faculty_user_id');
+    }
+
+    /**
+     * Get the moderator user assigned by HOD.
+     */
+    public function assignedModerator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'moderator_user_id');
     }
 }

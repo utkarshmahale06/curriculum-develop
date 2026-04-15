@@ -658,14 +658,17 @@ test('hod user can assign faculty to designed courses', function () {
     ]);
 
     $department = $department->fresh('courses');
-    $assignments = [];
+    $facultyAssignments = [];
+    $moderatorAssignments = [];
 
     foreach ($department->courses as $course) {
-        $assignments[$course->id] = $faculty->id;
+        $facultyAssignments[$course->id] = $faculty->id;
+        $moderatorAssignments[$course->id] = '';
     }
 
     $response = $this->actingAs($hodUser)->post(route('hod.faculty-assignments.update', $department), [
-        'faculty_assignments' => $assignments,
+        'faculty_assignments' => $facultyAssignments,
+        'moderator_assignments' => $moderatorAssignments,
     ]);
 
     $response->assertRedirect(route('hod.dashboard'));
@@ -685,14 +688,17 @@ test('any faculty can be assigned to any programme', function () {
     ]);
 
     $departmentA = $departmentA->fresh('courses');
-    $assignments = [];
+    $facultyAssignments = [];
+    $moderatorAssignments = [];
 
     foreach ($departmentA->courses as $course) {
-        $assignments[$course->id] = $faculty->id;
+        $facultyAssignments[$course->id] = $faculty->id;
+        $moderatorAssignments[$course->id] = '';
     }
 
     $response = $this->actingAs($hodUser)->post(route('hod.faculty-assignments.update', $departmentA), [
-        'faculty_assignments' => $assignments,
+        'faculty_assignments' => $facultyAssignments,
+        'moderator_assignments' => $moderatorAssignments,
     ]);
 
     $response->assertRedirect(route('hod.dashboard'));
@@ -742,7 +748,7 @@ test('faculty dashboard shows assigned subjects', function () {
     $response->assertSee($course->course_title);
 });
 
-test('moderator dashboard shows faculty subject queue', function () {
+test('moderator dashboard shows assigned subjects for logged-in moderator', function () {
     $moderator = createModeratorUser();
     $hodUser = createHodUserForTest();
     $department = createProgramme(['assigned_user_id' => $hodUser->id]);
@@ -755,13 +761,14 @@ test('moderator dashboard shows faculty subject queue', function () {
     $course = $department->fresh('courses')->courses->first();
     $course->update([
         'faculty_user_id' => $faculty->id,
+        'moderator_user_id' => $moderator->id,
     ]);
 
     $response = $this->actingAs($moderator)->get(route('moderator.dashboard'));
 
     $response->assertOk();
     $response->assertSee('Moderator Dashboard');
-    $response->assertSee('Faculty Subject Queue');
+    $response->assertSee('My Assigned Subjects');
     $response->assertSee($course->course_title);
     $response->assertSee($faculty->name);
 });
