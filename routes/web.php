@@ -9,6 +9,7 @@ use App\Http\Controllers\Faculty\FacultyDashboardController;
 use App\Http\Controllers\Hod\HodCourseAssignmentController;
 use App\Http\Controllers\Hod\HodCourseDesignController;
 use App\Http\Controllers\Hod\HodDashboardController;
+use App\Http\Controllers\Hod\HodUserManagementController;
 use App\Http\Controllers\Moderator\ModeratorDashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +71,9 @@ Route::prefix('cdc')->middleware(['auth', 'cdc'])->group(function () {
 // HOD routes (includes course design + faculty assignments)
 Route::prefix('hod')->middleware(['auth', 'hod'])->group(function () {
     Route::get('/dashboard', [HodDashboardController::class, 'index'])->name('hod.dashboard');
+    Route::get('/users', [HodUserManagementController::class, 'index'])->name('hod.users.index');
+    Route::get('/users/create', [HodUserManagementController::class, 'create'])->name('hod.users.create');
+    Route::post('/users', [HodUserManagementController::class, 'store'])->name('hod.users.store');
     Route::get('/schemes/{department}/courses/view', [HodCourseDesignController::class, 'show'])->name('hod.courses.show');
     Route::get('/schemes/{department}/courses', [HodCourseDesignController::class, 'edit'])->name('hod.courses.edit');
     Route::post('/schemes/{department}/courses', [HodCourseDesignController::class, 'update'])->name('hod.courses.update');

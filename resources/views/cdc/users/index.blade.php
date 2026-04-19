@@ -1,34 +1,22 @@
 @extends('layouts.app')
 
-@section('title', 'Manage Accounts')
+@section('title', 'Manage HOD Accounts')
 
 @section('content')
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
         <div>
-            <p style="color: #6b7280;">CDC creates and controls HOD, moderator, and faculty accounts.</p>
+            <h2 style="margin-bottom: 6px;">Manage HOD Accounts</h2>
+            <p style="color: #6b7280;">CDC creates HOD accounts only. HOD creates moderator and faculty accounts.</p>
         </div>
         <div style="display: flex; gap: 10px;">
-            <a href="{{ route('cdc.users.create') }}" class="btn btn-primary">Create Account</a>
+            <a href="{{ route('cdc.users.create') }}" class="btn btn-primary">Create HOD Account</a>
             <a href="{{ route('cdc.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
         </div>
     </div>
 
-    <form method="GET" action="{{ route('cdc.users.index') }}" style="display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: 20px;">
-        <div class="form-group" style="margin-bottom: 0; min-width: 220px;">
-            <label for="role">Filter By Role</label>
-            <select id="role" name="role">
-                <option value="">All roles</option>
-                <option value="hod" {{ $selectedRole === 'hod' ? 'selected' : '' }}>HOD</option>
-                <option value="moderator" {{ $selectedRole === 'moderator' ? 'selected' : '' }}>Moderator</option>
-                <option value="faculty" {{ $selectedRole === 'faculty' ? 'selected' : '' }}>Faculty</option>
-            </select>
-        </div>
-        <button type="submit" class="btn btn-secondary">Apply Filter</button>
-    </form>
-
     @if($users->isEmpty())
-        <p style="color: #6b7280; text-align: center; padding: 24px 0;">No accounts found for the selected filter.</p>
+        <p style="color: #6b7280; text-align: center; padding: 24px 0;">No HOD accounts found.</p>
     @else
         <table>
             <thead>
@@ -53,5 +41,3 @@
     @endif
 </div>
 @endsection
-
-

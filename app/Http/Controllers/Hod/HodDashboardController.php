@@ -21,11 +21,12 @@ class HodDashboardController extends Controller
             ->with(['courseBaskets', 'courses.courseBasket', 'courses.assignedFaculty', 'facultyUsers'])
             ->orderBy('name')
             ->get();
+        $assignedDepartmentIds = $assignedDepartments->pluck('id')->all();
 
         return view('hod.dashboard', [
             'assignedDepartments' => $assignedDepartments,
-            'moderators' => User::where('role', 'moderator')->orderBy('name')->get(),
-            'facultyUsers' => User::where('role', 'faculty')->withCount('facultyCourses')->orderBy('name')->get(),
+            'moderators' => User::where('role', 'moderator')->whereIn('department_id', $assignedDepartmentIds)->orderBy('name')->get(),
+            'facultyUsers' => User::where('role', 'faculty')->whereIn('department_id', $assignedDepartmentIds)->withCount('facultyCourses')->orderBy('name')->get(),
             'summary' => [
                 'total' => $assignedDepartments->count(),
                 'draft' => $assignedDepartments->where('cdc_review_status', 'draft')->count(),

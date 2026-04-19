@@ -22,11 +22,13 @@ class HodCourseAssignmentController extends Controller
 
         $facultyUsers = User::query()
             ->where('role', 'faculty')
+            ->where('department_id', $department->id)
             ->orderBy('name')
             ->get();
 
         $moderatorUsers = User::query()
             ->where('role', 'moderator')
+            ->where('department_id', $department->id)
             ->orderBy('name')
             ->get();
 
@@ -43,11 +45,13 @@ class HodCourseAssignmentController extends Controller
 
         $facultyIds = User::query()
             ->where('role', 'faculty')
+            ->where('department_id', $department->id)
             ->pluck('id')
             ->all();
 
         $moderatorIds = User::query()
             ->where('role', 'moderator')
+            ->where('department_id', $department->id)
             ->pluck('id')
             ->all();
 

@@ -55,7 +55,7 @@ class AuthController extends Controller
     public function showModeratorRegisterForm()
     {
         return redirect()->route('moderator.login')
-            ->with('warning', 'Moderator accounts are created by CDC. Please contact CDC for account setup.');
+            ->with('warning', 'Moderator accounts are created by HOD. Please contact your HOD for account setup.');
     }
 
     /**
@@ -64,7 +64,7 @@ class AuthController extends Controller
     public function showFacultyRegisterForm()
     {
         return redirect()->route('faculty.login')
-            ->with('warning', 'Faculty accounts are now created by CDC. Please contact CDC for account setup.');
+            ->with('warning', 'Faculty accounts are now created by HOD. Please contact your HOD for account setup.');
     }
 
     /**

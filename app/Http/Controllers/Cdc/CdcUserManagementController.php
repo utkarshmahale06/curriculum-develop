@@ -16,7 +16,7 @@ class CdcUserManagementController extends Controller
         $role = $request->string('role')->toString();
 
         $users = User::query()
-            ->when(in_array($role, ['hod', 'moderator', 'faculty'], true), fn ($query) => $query->where('role', $role))
+            ->where('role', 'hod')
             ->orderBy('role')
             ->orderBy('name')
             ->get();
@@ -43,14 +43,13 @@ class CdcUserManagementController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', 'in:hod,moderator,faculty'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => $validated['role'],
+            'role' => 'hod',
             'password' => $validated['password'],
         ]);
 

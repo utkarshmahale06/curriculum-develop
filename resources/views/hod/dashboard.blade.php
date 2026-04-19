@@ -9,6 +9,10 @@
             <h2 style="margin-bottom: 6px;">HOD Dashboard</h2>
             <p style="color: #6b7280;">Welcome, {{ Auth::user()->name }}. Manage your assigned programmes — design courses and assign faculty.</p>
         </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{{ route('hod.users.index') }}" class="btn btn-secondary">Manage Moderator/Faculty Accounts</a>
+            <a href="{{ route('hod.users.create') }}" class="btn btn-primary">Create Account</a>
+        </div>
     </div>
 
     @if(session('success'))
@@ -172,4 +176,5 @@
     </div>
 </div>
 @endsection
+
 

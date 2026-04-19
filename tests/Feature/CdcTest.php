@@ -223,23 +223,26 @@ test('cdc user can create a HOD account', function () {
     ]);
 });
 
-test('cdc user can create a moderator account', function () {
-    $cdc = createCdcUser();
+test('hod user can create a moderator account', function () {
+    $hodUser = createHodUserForTest();
+    $department = createProgramme(['assigned_user_id' => $hodUser->id]);
 
-    $response = $this->actingAs($cdc)->post(route('cdc.users.store'), [
+    $response = $this->actingAs($hodUser)->post(route('hod.users.store'), [
         'name' => 'Moderator User',
         'email' => 'moderator@example.com',
         'role' => 'moderator',
+        'department_id' => $department->id,
         'password' => 'password123',
         'password_confirmation' => 'password123',
     ]);
 
-    $response->assertRedirect(route('cdc.users.index'));
+    $response->assertRedirect(route('hod.users.index'));
     $response->assertSessionHas('success', 'Moderator account created successfully.');
 
     $this->assertDatabaseHas('users', [
         'email' => 'moderator@example.com',
         'role' => 'moderator',
+        'department_id' => $department->id,
     ]);
 });
 
@@ -651,7 +654,7 @@ test('moderator user can login through moderator portal', function () {
 test('hod user can assign faculty to designed courses', function () {
     $hodUser = createHodUserForTest();
     $department = createProgramme(['assigned_user_id' => $hodUser->id]);
-    $faculty = createFacultyUser();
+    $faculty = createFacultyUser(['department_id' => $department->id]);
 
     $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),
@@ -678,10 +681,11 @@ test('hod user can assign faculty to designed courses', function () {
     ]);
 });
 
-test('any faculty can be assigned to any programme', function () {
+test('faculty from another programme cannot be assigned', function () {
     $hodUser = createHodUserForTest();
     $departmentA = createProgramme(['name' => 'Programme A', 'code' => 'PA', 'assigned_user_id' => $hodUser->id]);
-    $faculty = createFacultyUser();
+    $departmentB = createProgramme(['name' => 'Programme B', 'code' => 'PB']);
+    $faculty = createFacultyUser(['department_id' => $departmentB->id]);
 
     $this->actingAs($hodUser)->post(route('hod.courses.update', $departmentA), [
         'courses' => validCourseRows($departmentA),
@@ -701,28 +705,27 @@ test('any faculty can be assigned to any programme', function () {
         'moderator_assignments' => $moderatorAssignments,
     ]);
 
-    $response->assertRedirect(route('hod.dashboard'));
-    $this->assertDatabaseHas('courses', [
+    $response->assertSessionHasErrors();
+    $this->assertDatabaseMissing('courses', [
         'id' => $departmentA->courses->first()->id,
         'faculty_user_id' => $faculty->id,
     ]);
 });
 
-test('cdc user can create account without department', function () {
+test('cdc user creates hod account without department', function () {
     $cdc = createCdcUser();
 
     $response = $this->actingAs($cdc)->post(route('cdc.users.store'), [
-        'name' => 'New Faculty',
-        'email' => 'new.faculty@example.com',
-        'role' => 'faculty',
+        'name' => 'New HOD',
+        'email' => 'new.hod@example.com',
         'password' => 'password123',
         'password_confirmation' => 'password123',
     ]);
 
     $response->assertRedirect(route('cdc.users.index'));
     $this->assertDatabaseHas('users', [
-        'email' => 'new.faculty@example.com',
-        'role' => 'faculty',
+        'email' => 'new.hod@example.com',
+        'role' => 'hod',
         'department_id' => null,
     ]);
 });
@@ -730,7 +733,7 @@ test('cdc user can create account without department', function () {
 test('faculty dashboard shows assigned subjects', function () {
     $hodUser = createHodUserForTest();
     $department = createProgramme(['assigned_user_id' => $hodUser->id]);
-    $faculty = createFacultyUser();
+    $faculty = createFacultyUser(['department_id' => $department->id]);
 
     $this->actingAs($hodUser)->post(route('hod.courses.update', $department), [
         'courses' => validCourseRows($department),

@@ -5,7 +5,7 @@
 @section('content')
 <div class="card">
     <h2>CDC Dashboard</h2>
-    <p style="color: #6b7280; margin-bottom: 25px;">Welcome, {{ Auth::user()->name }}. Manage programmes, review submissions, and create institutional accounts from here.</p>
+    <p style="color: #6b7280; margin-bottom: 25px;">Welcome, {{ Auth::user()->name }}. Manage programmes, review submissions, and create HOD accounts from here.</p>
 
     <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 24px;">
         <div class="card" style="padding: 16px;">
@@ -27,16 +27,14 @@
     </div>
 
     <div class="alert alert-warning" style="margin-bottom: 24px;">
-        Accounts managed by CDC:
-        HOD {{ $accountCounts['hod'] }},
-        Moderator {{ $accountCounts['moderator'] }},
-        Faculty {{ $accountCounts['faculty'] }}.
+        Accounts managed by CDC: HOD {{ $accountCounts['hod'] }}.
+        Moderator and faculty accounts are created by HOD.
     </div>
 
     <div style="display: flex; gap: 15px; flex-wrap: wrap;">
         <a href="{{ route('cdc.departments.create') }}" class="btn btn-primary">Create Programme</a>
         <a href="{{ route('cdc.departments.index') }}" class="btn btn-success">View Programmes</a>
-        <a href="{{ route('cdc.users.index') }}" class="btn btn-secondary">Manage Accounts</a>
+        <a href="{{ route('cdc.users.index') }}" class="btn btn-secondary">Manage HOD Accounts</a>
     </div>
 </div>
 @endsection
